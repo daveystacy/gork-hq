@@ -28,7 +28,7 @@ h1{margin:0 0 8px;font-size:18px;letter-spacing:2px}h1 b{color:#8b5cf6}h1 small{
 </style>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 </head><body>
-<div id="stage"><h1><b>Expire</b> Trading Bot<small id="upd"></small></h1><div id="view"><div id="ov"></div><div id="hud">…</div><button id="cls" onclick="unfocus()" style="display:none;position:absolute;right:8px;top:8px;z-index:7;font:700 14px ui-monospace,monospace;background:#d4af37;color:#000;border:0;border-radius:8px;padding:6px 12px">✕ back to office</button><div style="position:absolute;right:8px;bottom:40px;z-index:6;font:13px ui-monospace,monospace;color:#888;pointer-events:none">tap a bot for close-up</div><div id="tick"><span>loading…</span></div></div></div>
+<div id="stage"><h1><b>Expire</b> Trading Bot<small id="upd"></small></h1><div id="view"><div id="ov"></div><div id="hud">…</div><button id="cls" onclick="unfocus()" style="display:none;position:absolute;right:8px;top:58px;z-index:7;font:700 14px ui-monospace,monospace;background:#d4af37;color:#000;border:0;border-radius:8px;padding:6px 12px">✕ back to office</button><div style="position:absolute;right:8px;bottom:40px;z-index:6;font:13px ui-monospace,monospace;color:#888;pointer-events:none">tap a bot for close-up</div><div id="tick"><span>loading…</span></div></div></div>
 <div id="side"><div class="sec" id="wall"><h2>Paper trading · live</h2><div id="wb">loading real EBT data…</div></div><div class="sec"><h2>Team</h2><div id="team"></div></div>
 <div class="sec"><h2>Tasks</h2><div id="tasks"></div></div><div class="sec"><h2>Activity</h2><div id="log"></div></div></div>
 <script type="module">
@@ -140,7 +140,7 @@ function makeBot(a){const col=COL[a.id]||'#aaa',G=new THREE.Group(),body=new THR
  G.position.set(...(SPOTS[Object.keys(bots).length%SPOTS.length].map((v,i)=>i?v:v)));G.position.set(G.position.x,0,G.position.y);
  const sp=SPOTS[Object.keys(bots).length%SPOTS.length];G.position.set(sp[0],0,sp[1]);
  const t0=target(a);if(t0){G.position.set(t0[0],0,t0[1]);G.rotation.y=t0[2]||0}
- const sm=[];for(let i=0;i<22;i++){const m=new THREE.Sprite(new THREE.SpriteMaterial({map:SMOKE,color:col,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0}));m.userData={ph:Math.random(),r:.15+Math.random()*.4,a:Math.random()*6.3,sp:.25+Math.random()*.3};G.add(m);sm.push(m)}
+ const sm=[];for(let i=0;i<32;i++){const m=new THREE.Sprite(new THREE.SpriteMaterial({map:SMOKE,color:col,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0}));m.userData={ph:Math.random(),r:.15+Math.random()*.4,a:Math.random()*6.3,sp:.25+Math.random()*.3};G.add(m);sm.push(m)}
  scene.add(G);return{sm,G,body,limbs,bub,el,face,bulbM,H,path:[],gk:'',ph:Math.random()*6,wx:null,wait:0,key:''}}
 const bots={};window.__b=bots;setTimeout(()=>{window.__cam=cam;window.__ctl=ctl},0);
 window.syncBots=function(){S.agents.forEach(a=>{if(!bots[a.id])bots[a.id]=makeBot(a)})};
@@ -171,7 +171,7 @@ function loop(){const rd=clock.getDelta(),dt=Math.min(rd,.05),t=clock.elapsedTim
   else if(tg[2]!=null){let df=tg[2]-b.G.rotation.y;df=Math.atan2(Math.sin(df),Math.cos(df));b.G.rotation.y+=df*Math.min(1,dt*6)}
   const sw=mv?Math.sin(b.ph)*.6:0;for(const s of[-1,1]){b.limbs[s].leg.rotation.x+=(s*sw-b.limbs[s].leg.rotation.x)*.3;b.limbs[s].arm.rotation.x+=((a.state==='working'&&!mv?-.9:-s*sw)-b.limbs[s].arm.rotation.x)*.3}
   {const ht=t+b.ph;b.face.material.map=b.happy>t?FACE.h:(ht%4<.12?FACE.b:FACE.n);b.bulbM.emissiveIntensity=a.state==='working'?1.5+Math.sin(t*6+b.ph)*1.2:.8;b.H.rotation.z=mv?0:Math.sin(t*1.2+b.ph)*.05;b.H.rotation.x=mv?Math.sin(b.ph*2)*.03:0}
-  for(const m of b.sm){const u=m.userData,k=(t*u.sp+u.ph)%1;const a=u.a+t*.8;m.position.set(Math.cos(a)*u.r*(1+k*.6),.1+k*2.3,Math.sin(a)*u.r*(1+k*.6));const sc=.5+k*.9;m.scale.set(sc,sc,1);m.material.opacity=Math.sin(k*Math.PI)*(mv?1:.85);m.material.rotation=a}
+  for(const m of b.sm){const u=m.userData,k=(t*u.sp+u.ph)%1;const a=u.a+t*.8;m.position.set(Math.cos(a)*u.r*(1+k*.6),.1+k*2.3,Math.sin(a)*u.r*(1+k*.6));const sc=.6+k*1.1;m.scale.set(sc,sc,1);m.material.opacity=Math.sin(k*Math.PI)*(mv?1:.85);m.material.rotation=a}
   b.body.position.y=mv?Math.abs(Math.cos(b.ph))*.06:Math.sin(t*2+b.ph)*.015;
   let txt='',pr=-1,col='#111';if(a.state==='working'&&!mv&&a.color)col=a.color;if(a.state==='working'&&!mv){txt=a.task||'working';pr=a.progress??-1}else if(a.state==='waiting_user'){txt='waiting on you…';col='#b45309'}else if(a.state==='meeting'&&a===firstMeet&&!mv){txt=a.task||'meeting';col='#6d28d9'}else if(a.state==='idle'&&a.task){txt=a.task;col='#777'}
   const key=txt+pr+col+(a.img||'');if(key!==b.key){b.key=key;const bb=b.el.firstChild;bb.style.display=txt?'block':'none';bb.style.color=col;bb.innerHTML=(a.img&&txt?`<img src="${esc(a.img)}" style="width:18px;height:18px;border-radius:50%;vertical-align:-4px;margin-right:5px" onerror="this.remove()">`:'')+esc(txt)+(pr>=0?`<i><b style="width:${pr}%"></b></i>`:'')}
@@ -230,4 +230,13 @@ pollEBT();setInterval(pollEBT,2500);
 (async()=>{if(!(await pollSB()))await poll();setInterval(async()=>{if(!(await pollSB()))poll()},15000);
  try{const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');const sb=createClient(SB,PK);
   sb.channel('gork-hq').on('postgres_changes',{event:'*',schema:'public',table:'gork_hq_status'},p=>{if(p.new&&p.new.data){S=p.new.data;render();document.getElementById('upd').textContent+=' · live'}}).subscribe(st=>{window.__rt=st})}catch(e){console.warn('realtime off',e)}})();
+</script><button id="mus" aria-label="music" style="position:fixed;right:12px;top:calc(10px + env(safe-area-inset-top));z-index:50;min-width:48px;height:44px;border-radius:13px;border:1px solid #c5b08d77;background:#081020e9;color:#ecd3a4;font:650 14px system-ui,sans-serif;box-shadow:0 7px 21px #0007;padding:0 12px">♪ <span id="musl">tap for sound</span></button>
+<script>
+(()=>{const T=[['Across the Room','music/across-the-room.m4a'],['Southbound Sky','music/southbound-sky.m4a']];let i=0,on=localStorage.getItem('xpRadioEnabled')!=='0',started=false;
+const a=new Audio();a.preload='none';a.setAttribute('playsinline','');a.volume=.32;const b=document.getElementById('mus'),l=document.getElementById('musl');
+const load=()=>{a.src=T[i][1]};load();a.onended=()=>{i=(i+1)%T.length;load();if(on)a.play().catch(()=>{})};
+const ui=()=>{l.textContent=!started&&on?'tap for sound':on?T[i][0]:'muted';b.style.opacity=on?1:.7;b.firstChild.textContent=on?'♪ ':'🔇 '};
+const go=()=>a.play().then(()=>{started=true;ui()}).catch(()=>{});
+b.onclick=e=>{e.stopPropagation();if(!started&&on){go();return}on=!on;localStorage.setItem('xpRadioEnabled',on?'1':'0');on?go():a.pause();ui()};
+const first=()=>{if(on&&!started)go();removeEventListener('pointerdown',first)};addEventListener('pointerdown',first);ui();if(on)go()})();
 </script></body></html>
