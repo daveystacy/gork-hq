@@ -155,5 +155,9 @@ function render(){document.getElementById('upd').textContent='updated '+ft(S.upd
  document.getElementById('log').innerHTML=[...S.log].reverse().slice(0,40).map(l=>`<div class="lg"><span>${ft(l.t)}</span>${esc(l.msg)}</div>`).join('');
  syncBots()}
 
-poll();setInterval(poll,5000);
+const SB='https://szpczmrvthxkdaxqzlqk.supabase.co',PK='sb_publishable_yEG-pRaQg9BZg4DM9ibxCg_JLuX0hLy';
+async function pollSB(){try{const r=await fetch(SB+'/rest/v1/gork_hq_status?id=eq.1&select=data',{headers:{apikey:PK}});const j=await r.json();if(j[0]){S=j[0].data;render();return true}}catch(e){}return false}
+(async()=>{if(!(await pollSB()))await poll();setInterval(async()=>{if(!(await pollSB()))poll()},15000);
+ try{const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');const sb=createClient(SB,PK);
+  sb.channel('gork-hq').on('postgres_changes',{event:'*',schema:'public',table:'gork_hq_status'},p=>{if(p.new&&p.new.data){S=p.new.data;render();document.getElementById('upd').textContent+=' · live'}}).subscribe(st=>{window.__rt=st})}catch(e){console.warn('realtime off',e)}})();
 </script></body></html>

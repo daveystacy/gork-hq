@@ -29,6 +29,15 @@ elif a[0]=="task" and a[1]=="set":
 elif a[0]=="log": log(" ".join(a[1:]))
 else: print(__doc__); sys.exit(1)
 d["updated"]=now; json.dump(d,open(P,"w"),indent=1)
+# realtime: push to Supabase (public read-only row; write needs token kept only on the box)
+import urllib.request
+SB="https://szpczmrvthxkdaxqzlqk.supabase.co";PK="sb_publishable_yEG-pRaQg9BZg4DM9ibxCg_JLuX0hLy"
+TOK=os.environ.get("GORK_WRITE_TOKEN") or (open(os.path.expanduser("~/.config/gork-hq/write_token")).read().strip() if os.path.exists(os.path.expanduser("~/.config/gork-hq/write_token")) else "")
+if TOK and os.environ.get("NOPUSH")!="1":
+    try:
+        rq=urllib.request.Request(SB+"/rest/v1/rpc/gork_hq_set",json.dumps({"p_token":TOK,"p_data":d}).encode(),{"apikey":PK,"Content-Type":"application/json"})
+        urllib.request.urlopen(rq,timeout=8).read()
+    except Exception as e: print("supabase push failed:",e,file=sys.stderr)
 # publish: commit+push status.json if inside a git repo (GitHub Pages redeploys ~1 min)
 import subprocess
 R=os.path.dirname(os.path.abspath(P))
