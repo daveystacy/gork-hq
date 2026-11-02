@@ -1,2 +1,2 @@
-# GORK HQ
-Live pixel office of the Grok Bot team. Update with `./update.py` (commits+pushes status.json).
+# Expire Trading Bot
+Live 3D office of the Expire bot team (gork.expire.org). Update with `./update.py` (pushes to Supabase realtime + commits status.json).
