@@ -25,10 +25,24 @@ h1{margin:0 0 8px;font-size:18px;letter-spacing:2px}h1 b{color:#8b5cf6}h1 small{
 #tick{position:absolute;left:0;right:0;bottom:0;z-index:6;background:rgba(0,0,0,.8);color:#d4af37;font:700 13px ui-monospace,monospace;white-space:nowrap;overflow:hidden;padding:6px 0;border-top:1px solid #d4af37}
 #tick span{display:inline-block;padding-left:100%;animation:tk 40s linear infinite}@keyframes tk{to{transform:translateX(-100%)}}
 #hud{position:absolute;left:8px;top:8px;z-index:6;background:rgba(0,0,0,.75);border:1px solid #d4af37;border-radius:10px;padding:6px 10px;font:700 13px ui-monospace,monospace;color:#fff;pointer-events:none}
+
+/* Desktop: two live EBT screens side by side (Mobile style + Night style), different tickers. Hidden on phones. Paper only. */
+#scr{display:none;width:100%;gap:12px;margin-top:10px}
+@media(min-width:1000px){#scr{display:grid;grid-template-columns:1fr 1fr}#view{height:calc(100vh - 330px)}}
+.sc{height:250px;border-radius:16px;padding:14px 16px;overflow:hidden;position:relative;font-family:Inter,system-ui,sans-serif}
+.sc.m{background:#0d0b14;border:1px solid #2a2540}.sc.n{background:radial-gradient(120% 90% at 100% 0,#2a1f0b,#0a0806 60%);border:1px solid rgba(233,196,106,.35);color:#f3e7c9}
+.sc .hd{display:flex;justify-content:space-between;align-items:center;font:600 10px Inter,system-ui;letter-spacing:1.5px;color:#8f8aa3;text-transform:uppercase}.sc.n .hd{color:#c9a95a}
+.sc .lv{display:inline-flex;gap:6px;align-items:center}.sc .lv:before{content:'';width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e}.sc.off .lv:before{background:#666;box-shadow:none}
+.sc .tk{display:flex;gap:12px;align-items:center;margin:10px 0 8px;background:none;padding:0;border:0}.sc .av{width:46px;height:46px;border-radius:50%;background:#2a2540 center/cover;display:grid;place-items:center;font:700 18px Inter,system-ui;flex:none}
+.sc.n .av{background-color:#3a2e18;box-shadow:0 0 0 2px rgba(233,196,106,.5)}
+.sc .tn{font:800 24px Inter,system-ui;line-height:1}.sc.n .tn{font-family:Georgia,serif;font-weight:700;color:#f3d27e}.sc .tm{color:#8f8aa3;font-size:12px;margin-top:3px}.sc.n .tm{color:#b9a272}
+.sc .st{display:flex;gap:8px;align-items:center;font:600 13px Inter,system-ui;padding:4px 0;margin:0;background:none}.sc .st i{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;background:#24203a;color:#666;flex:none}
+.sc .st.ok i{background:#22c55e;color:#04140a}.sc .st.x i{background:#ef4444;color:#fff}.sc .st.dim{color:#555}.sc.n .st.ok i{background:#e9c46a;color:#1a1206}
+.sc .st small{margin-left:auto;font:600 10px ui-monospace,monospace;color:#777}.sc .ft{position:absolute;left:16px;right:16px;bottom:10px;display:flex;justify-content:space-between;font:600 11px ui-monospace,monospace;color:#8f8aa3}.sc.n .ft{color:#c9a95a}
 </style>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 </head><body>
-<div id="stage"><h1><b>Expire</b> Trading Bot<small id="upd"></small></h1><div id="view"><div id="ov"></div><div id="hud">…</div><button id="cls" onclick="unfocus()" style="display:none;position:absolute;right:8px;top:58px;z-index:7;font:700 14px ui-monospace,monospace;background:#d4af37;color:#000;border:0;border-radius:8px;padding:6px 12px">✕ back to office</button><div style="position:absolute;right:8px;bottom:40px;z-index:6;font:13px ui-monospace,monospace;color:#888;pointer-events:none">tap a bot for close-up</div><div id="tick"><span>loading…</span></div></div></div>
+<div id="stage"><h1><b>Expire</b> Trading Bot<small id="upd"></small></h1><div id="view"><div id="ov"></div><div id="hud">…</div><button id="cls" onclick="unfocus()" style="display:none;position:absolute;right:8px;top:58px;z-index:7;font:700 14px ui-monospace,monospace;background:#d4af37;color:#000;border:0;border-radius:8px;padding:6px 12px">✕ back to office</button><div style="position:absolute;right:8px;bottom:40px;z-index:6;font:13px ui-monospace,monospace;color:#888;pointer-events:none">tap a bot for close-up</div><div id="tick"><span>loading…</span></div></div><div id="scr"><div class="sc m" id="scM"></div><div class="sc n" id="scN"></div></div></div>
 <div id="side"><div class="sec" id="wall"><h2>Paper trading · live</h2><div id="wb">loading real EBT data…</div></div><div class="sec"><h2>Team</h2><div id="team"></div></div>
 <div class="sec"><h2>Tasks</h2><div id="tasks"></div></div><div class="sec"><h2>Activity</h2><div id="log"></div></div></div>
 <script type="module">
@@ -230,6 +244,26 @@ pollEBT();setInterval(pollEBT,2500);
 (async()=>{if(!(await pollSB()))await poll();setInterval(async()=>{if(!(await pollSB()))poll()},15000);
  try{const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');const sb=createClient(SB,PK);
   sb.channel('gork-hq').on('postgres_changes',{event:'*',schema:'public',table:'gork_hq_status'},p=>{if(p.new&&p.new.data){S=p.new.data;render();document.getElementById('upd').textContent+=' · live'}}).subscribe(st=>{window.__rt=st})}catch(e){console.warn('realtime off',e)}})();
+
+// Two live EBT screens (desktop): Mobile style + Night style, fed from ebt_bg_state.feed, never the same ticker at once.
+let scI=0;const esh=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const kfmt=n=>n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+Math.round(n/1e3)+'K':'$'+Math.round(n||0);
+const agef=m=>m==null?'':m<60?Math.round(m)+'m old':Math.round(m/60)+'h old';
+function scPick(){const f=(E&&E.state&&E.state.feed)||[];if(!f.length)return[null,null];const a=f[scI%f.length];let b=null;
+ for(let k=1;k<f.length;k++){const c=f[(scI+k)%f.length];if(c.ticker!==a.ticker){b=c;break}}return[a,b]}
+function scCard(el,t,kind){const on=live(),st=(E&&E.state)||{},bk=st.book||{};el.classList.toggle('off',!on);
+ const hd=`<div class="hd"><span>${kind==='m'?'EBT · working on':'EBT · night desk'}</span><span class="lv">${on?'live · paper':'scanner stopped'}</span></div>`;
+ if(!t){el.innerHTML=hd+'<div class="tm" style="margin-top:20px">waiting for the scanner…</div>';return}
+ const k=t.killed,steps=[[`Found on ${esh(t.source||'DexScreener')}`,'ok','SCOUT'],
+  [k?'Killed · '+esh(k.detail||k.rule):'Passed 8 rules',k?'x':'ok','FILTER'],
+  [k?'Score':t.score!=null?`Score ${t.score}${t.pass?' → executor':' · dropped'}`:'Score',k?'dim':t.pass?'ok':'x','ANALYST'],
+  [t.entered?`Bought ${(+t.cost||0).toFixed(3)} SOL`:'Buy',t.entered?'ok':'dim','EXECUTOR']];
+ const pos=(bk.positions||[]),closed=pos.filter(p=>!p.open),net=closed.reduce((s,p)=>s+(p.pnlUsd||0),0);
+ el.innerHTML=hd+`<div class="tk"><div class="av" style="${t.image?`background-image:url('${encodeURI(t.image)}')`:''}">${t.image?'':esh((t.ticker||'?')[0])}</div><div><div class="tn">$${esh(t.ticker)}</div><div class="tm">${esh(t.source||'DexScreener')} · ${agef(t.ageMin)} · mc ${kfmt(t.mcap)} · liq ${kfmt(t.liquidity)}</div></div></div>`
+  +steps.map(([a,c,b])=>`<div class="st ${c}"><i>${c==='ok'?'✓':c==='x'?'✕':''}</i>${a}<small>${b}</small></div>`).join('')
+  +`<div class="ft"><span>${kind==='m'?'balance '+(+(bk.equity??bk.cash??0)).toFixed(3)+' SOL':'scans '+(st.scans||0)}</span><span>${closed.length} trades · net ${fmt(net)} SOL</span></div>`}
+function scPaint(){if(innerWidth<1000)return;const[a,b]=scPick();scCard(document.getElementById('scM'),a,'m');scCard(document.getElementById('scN'),b,'n')}
+setInterval(()=>{if(live())scI+=2;scPaint()},1800);
 </script><button id="mus" aria-label="music" style="position:fixed;right:12px;top:calc(10px + env(safe-area-inset-top));z-index:50;min-width:48px;height:44px;border-radius:13px;border:1px solid #c5b08d77;background:#081020e9;color:#ecd3a4;font:650 14px system-ui,sans-serif;box-shadow:0 7px 21px #0007;padding:0 12px">♪ <span id="musl">tap for sound</span></button>
 <script>
 (()=>{const T=[['Across the Room','music/across-the-room.m4a'],['Southbound Sky','music/southbound-sky.m4a']];let i=0,on=localStorage.getItem('xpRadioEnabled')!=='0',started=false;
