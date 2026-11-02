@@ -1,0 +1,106 @@
+{
+ "updated": "2026-11-01T22:10:20-06:00",
+ "agents": [
+  {
+   "id": "gork",
+   "name": "GORK",
+   "role": "Lead bot",
+   "state": "working",
+   "task": "Coordinating EBT v5 launch",
+   "progress": 60,
+   "since": "2026-11-01T21:30:00-06:00"
+  },
+  {
+   "id": "builder",
+   "name": "Builder",
+   "role": "Code / executor",
+   "state": "working",
+   "task": "EBT v5 launch to terminal.expire.org",
+   "progress": 55,
+   "since": "2026-11-01T21:40:00-06:00"
+  },
+  {
+   "id": "browser",
+   "name": "Browser",
+   "role": "Computer use / web",
+   "state": "idle",
+   "task": "",
+   "progress": 0,
+   "since": "2026-11-01T21:20:00-06:00"
+  },
+  {
+   "id": "researcher",
+   "name": "Researcher",
+   "role": "Research",
+   "state": "idle",
+   "task": "",
+   "progress": 0,
+   "since": "2026-11-01T21:00:00-06:00"
+  },
+  {
+   "id": "scanner",
+   "name": "Scanner",
+   "role": "EBT token scanner",
+   "state": "working",
+   "task": "Paper-scanning Solana pairs",
+   "progress": 30,
+   "since": "2026-11-01T20:00:00-06:00"
+  }
+ ],
+ "tasks": [
+  {
+   "id": "t1",
+   "title": "EBT v5 launch to terminal.expire.org",
+   "owner": "builder",
+   "status": "in-progress",
+   "started": "2026-11-01T21:40:00-06:00",
+   "finished": null
+  },
+  {
+   "id": "t2",
+   "title": "iOS home-screen polish",
+   "owner": "builder",
+   "status": "queued",
+   "started": null,
+   "finished": null
+  },
+  {
+   "id": "t3",
+   "title": "Read ChatGPT EBT BOT V4 notes",
+   "owner": "browser",
+   "status": "done",
+   "started": "2026-11-01T20:50:00-06:00",
+   "finished": "2026-11-01T21:15:00-06:00"
+  },
+  {
+   "id": "t4",
+   "title": "Vercel / GitHub access",
+   "owner": "gork",
+   "status": "done",
+   "started": "2026-11-01T19:30:00-06:00",
+   "finished": "2026-11-01T21:35:00-06:00"
+  }
+ ],
+ "log": [
+  {
+   "t": "2026-11-01T21:15:00-06:00",
+   "msg": "Browser finished reading EBT BOT V4 notes"
+  },
+  {
+   "t": "2026-11-01T21:35:00-06:00",
+   "msg": "GORK: Vercel expire team access approved"
+  },
+  {
+   "t": "2026-11-01T21:40:00-06:00",
+   "msg": "Builder started EBT v5 launch"
+  },
+  {
+   "t": "2026-11-01T22:10:00-06:00",
+   "msg": "GORK HQ came online"
+  },
+  {
+   "t": "2026-11-01T22:10:20-06:00",
+   "msg": "update.py self-test"
+  }
+ ]
+}
