@@ -1,13 +1,13 @@
 {
- "updated": "2026-11-01T23:05:03-06:00",
+ "updated": "2026-11-01T23:05:05-06:00",
  "agents": [
   {
    "id": "gork",
    "name": "GORK",
    "role": "Lead bot",
    "state": "working",
-   "task": "Coordinating EBT v5 launch",
-   "progress": 60,
+   "task": "Wiring gork.expire.org realtime",
+   "progress": 80,
    "since": "2026-11-01T21:30:00-06:00"
   },
   {
@@ -125,6 +125,10 @@
   {
    "t": "2026-11-01T23:05:03-06:00",
    "msg": "latency probe 2 1793595903"
+  },
+  {
+   "t": "2026-11-01T23:05:05-06:00",
+   "msg": "GORK \u2192 working: Wiring gork.expire.org realtime"
   }
  ]
 }
