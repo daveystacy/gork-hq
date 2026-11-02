@@ -249,9 +249,15 @@ pollEBT();setInterval(pollEBT,2500);
 let scI=0;const esh=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const kfmt=n=>n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+Math.round(n/1e3)+'K':'$'+Math.round(n||0);
 const agef=m=>m==null?'':m<60?Math.round(m)+'m old':Math.round(m/60)+'h old';
+const LOGO=JSON.parse(localStorage.getItem('gork:logos')||'{}');let logoBusy=false;
+async function logoFill(mints){mints=[...new Set(mints)].filter(m=>m&&!(m in LOGO));if(!mints.length||logoBusy)return;logoBusy=true;
+ try{const r=await fetch('https://api.dexscreener.com/tokens/v1/solana/'+mints.slice(0,30).join(','));const a=r.ok?await r.json():[];for(const p of a||[]){const m=p.baseToken&&p.baseToken.address;if(m&&p.info&&p.info.imageUrl&&!LOGO[m])LOGO[m]=p.info.imageUrl}
+  for(const m of mints.slice(0,30))if(!LOGO[m]){try{const g=await(await fetch('https://api.geckoterminal.com/api/v2/networks/solana/tokens/'+m)).json();const u=g&&g.data&&g.data.attributes&&g.data.attributes.image_url;LOGO[m]=u&&u!=='missing.png'?u:null}catch{}}
+  localStorage.setItem('gork:logos',JSON.stringify(LOGO))}catch{}finally{logoBusy=false}}
+const imgOf=t=>t.image||LOGO[t.mint]||null;
 function scPick(){const f=(E&&E.state&&E.state.feed)||[];if(!f.length)return[null,null];const a=f[scI%f.length];let b=null;
  for(let k=1;k<f.length;k++){const c=f[(scI+k)%f.length];if(c.ticker!==a.ticker){b=c;break}}return[a,b]}
-function scCard(el,t,kind){const on=live(),st=(E&&E.state)||{},bk=st.book||{};el.classList.toggle('off',!on);
+function scCard(el,t,kind){if(t&&!t.image&&!(t.mint in LOGO))logoFill([t.mint]);const IM=t&&imgOf(t);const on=live(),st=(E&&E.state)||{},bk=st.book||{};el.classList.toggle('off',!on);
  const hd=`<div class="hd"><span>${kind==='m'?'EBT · working on':'EBT · night desk'}</span><span class="lv">${on?'live · paper':'scanner stopped'}</span></div>`;
  if(!t){el.innerHTML=hd+'<div class="tm" style="margin-top:20px">waiting for the scanner…</div>';return}
  const k=t.killed,steps=[[`Found on ${esh(t.source||'DexScreener')}`,'ok','SCOUT'],
@@ -259,7 +265,7 @@ function scCard(el,t,kind){const on=live(),st=(E&&E.state)||{},bk=st.book||{};el
   [k?'Score':t.score!=null?`Score ${t.score}${t.pass?' → executor':' · dropped'}`:'Score',k?'dim':t.pass?'ok':'x','ANALYST'],
   [t.entered?`Bought ${(+t.cost||0).toFixed(3)} SOL`:'Buy',t.entered?'ok':'dim','EXECUTOR']];
  const pos=(bk.positions||[]),closed=pos.filter(p=>!p.open),net=closed.reduce((s,p)=>s+(p.pnlUsd||0),0);
- el.innerHTML=hd+`<div class="tk"><div class="av" style="${t.image?`background-image:url('${encodeURI(t.image)}')`:''}">${t.image?'':esh((t.ticker||'?')[0])}</div><div><div class="tn">$${esh(t.ticker)}</div><div class="tm">${esh(t.source||'DexScreener')} · ${agef(t.ageMin)} · mc ${kfmt(t.mcap)} · liq ${kfmt(t.liquidity)}</div></div></div>`
+ el.innerHTML=hd+`<div class="tk"><div class="av" style="${IM?`background-image:url('${encodeURI(IM)}')`:''}">${IM?'':esh((t.ticker||'?')[0])}</div><div><div class="tn">$${esh(t.ticker)}</div><div class="tm">${esh(t.source||'DexScreener')} · ${agef(t.ageMin)} · mc ${kfmt(t.mcap)} · liq ${kfmt(t.liquidity)}</div></div></div>`
   +steps.map(([a,c,b])=>`<div class="st ${c}"><i>${c==='ok'?'✓':c==='x'?'✕':''}</i>${a}<small>${b}</small></div>`).join('')
   +`<div class="ft"><span>${kind==='m'?'balance '+(+(bk.equity??bk.cash??0)).toFixed(3)+' SOL':'scans '+(st.scans||0)}</span><span>${closed.length} trades · net ${fmt(net)} SOL</span></div>`}
 function scPaint(){if(innerWidth<1000)return;const[a,b]=scPick();scCard(document.getElementById('scM'),a,'m');scCard(document.getElementById('scN'),b,'n')}
