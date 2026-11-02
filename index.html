@@ -35,9 +35,9 @@ const R=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer
 R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;R.toneMapping=THREE.ACESFilmicToneMapping;R.outputColorSpace=THREE.SRGBColorSpace;V.appendChild(R.domElement);
 const scene=new THREE.Scene();scene.environment=new THREE.PMREMGenerator(R).fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.7;
 const cam=new THREE.OrthographicCamera(-1,1,1,-1,.1,200);cam.position.set(18,17,18);
-const ctl=new OrbitControls(cam,R.domElement);ctl.enableDamping=true;const TY=V.clientWidth<600?6.5:1.2;ctl.target.set(0,TY,0);cam.position.y+=TY;ctl.minZoom=.6;ctl.maxZoom=3;ctl.maxPolarAngle=1.25;ctl.minPolarAngle=.5;ctl.enablePan=false;ctl.autoRotate=true;ctl.autoRotateSpeed=.25;
+const ctl=new OrbitControls(cam,R.domElement);ctl.enableDamping=true;const TY=V.clientWidth<600?5.2:1.2;ctl.target.set(0,TY,0);cam.position.y+=TY;ctl.minZoom=.6;ctl.maxZoom=3;ctl.maxPolarAngle=1.25;ctl.minPolarAngle=.5;ctl.enablePan=false;ctl.autoRotate=true;ctl.autoRotateSpeed=.25;
 R.domElement.addEventListener('pointerdown',()=>ctl.autoRotate=false);
-function size(){const w=V.clientWidth,h=V.clientHeight,a=w/h,k=Math.max(9,12.3/a);cam.left=-k*a;cam.right=k*a;cam.top=k;cam.bottom=-k;cam.updateProjectionMatrix();R.setSize(w,h)}
+function size(){const w=V.clientWidth,h=V.clientHeight,a=w/h,k=Math.max(9,12.8/a);cam.left=-k*a;cam.right=k*a;cam.top=k;cam.bottom=-k;cam.updateProjectionMatrix();R.setSize(w,h)}
 addEventListener('resize',size);size();
 scene.add(new THREE.HemisphereLight('#9aa8ff','#201810',.5));
 const sun=new THREE.DirectionalLight('#fff1dd',2.2);sun.position.set(-8,16,10);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-14,right:14,top:14,bottom:-14});sun.shadow.bias=-.0005;scene.add(sun);
