@@ -23,7 +23,7 @@ The trading bot's office, gork.expire.org, is the page at the root of this repo 
 
 ## What the office will and won't show
 
-- Only real reports. Nothing on the floor is simulated; idle bots wander because they are idle.
+- Only real reports. Nothing on the floor is simulated; an idle bot sits at the long table on a laptop, phone or iPad, writing or eating; that's decoration for being idle and says nothing about real work.
 - An agent that says it is working but hasn't reported for 20 minutes shows as **gone quiet**, with how long it has been silent. It is never shown as working on old information.
 - **Waiting on you** turns amber on the floor, in the switcher, in All offices and in the tab title.
 - Decor carries no prices, balances or mint counts. The only numbers in an office are real ones.

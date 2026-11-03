@@ -6,13 +6,13 @@
 //   box     glossy cobalt box head with a black lid and a green bulb
 //   chrome  the faceless chrome Expireman, e-globe on the chest, Explore / Inspire on the back (the office lead)
 // All marks are the official artwork from the site's brand and print folders, never a redraw.
-// Geometry and materials are shared between bots, the hoodie and legs are merged, so five agents stay cheap on a phone.
+// Geometry and materials are shared between bots, the hoodie and legs are merged, so the team stays cheap on a phone. The office uses two blue box heads, two glitch and two white smoke; liquid and chrome stay here but aren't seated.
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
-export const KINDS = ['liquid', 'smoke', 'chrome', 'glitch', 'box']; // by desk; the lead sits in the centre
+export const KINDS = ['box', 'glitch', 'smoke', 'box', 'glitch', 'smoke']; // by seat: two blue heads, two glitch, two white smoke
 
 const R = .37;            // head radius
 const HEAD_Y = 2.8;
@@ -184,6 +184,8 @@ export function createBotFactory({ tex, loadTex, studio, mirror }) {
     g.computeVertexNormals();
     return g;
   })();
+  const phoneGeo = new RoundedBoxGeometry(.17, .32, .02, 2, .008), phoneScreenGeo = new THREE.PlaneGeometry(.15, .29);
+  const phoneCase = new THREE.MeshStandardMaterial({ color: '#0c0c10', metalness: .8, roughness: .25 }), phoneScreen = new THREE.MeshBasicMaterial({ color: '#7fb6ff', toneMapped: false });
   const neckGeo = new THREE.CylinderGeometry(.11, .15, .24, 16);
   const boxHeadGeo = new RoundedBoxGeometry(.94, .74, .76, 6, .17);
   const boxLidGeo = new RoundedBoxGeometry(.92, .2, .74, 6, .098);
@@ -261,14 +263,12 @@ export function createBotFactory({ tex, loadTex, studio, mirror }) {
   }, 420, 140);
 
   const smokyInside = tex((g, w, h) => {
-    g.fillStyle = '#05081a'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#2a2d36'; g.fillRect(0, 0, w, h);
     for (let i = 0; i < 14; i++) {
       const x = Math.random() * w, y = Math.random() * h, r = g.createRadialGradient(x, y, 0, x, y, 70 + Math.random() * 60);
-      r.addColorStop(0, 'rgba(120,150,255,.22)'); r.addColorStop(1, 'rgba(120,150,255,0)');
+      r.addColorStop(0, 'rgba(255,255,255,.3)'); r.addColorStop(1, 'rgba(255,255,255,0)');
       g.fillStyle = r; g.fillRect(0, 0, w, h);
     }
-    const c = ['#ffffff', '#38bdf8', '#2563ff', '#ff5a8a', '#a78bfa'];
-    for (let i = 0; i < 220; i++) { g.fillStyle = c[i % c.length]; g.globalAlpha = .25 + Math.random() * .7; g.fillRect(Math.random() * w, Math.random() * h, 2 + Math.random() * 9, 1.5 + Math.random() * 4); }
     g.globalAlpha = 1;
   }, 512, 256);
 
@@ -280,7 +280,7 @@ export function createBotFactory({ tex, loadTex, studio, mirror }) {
   const UP = new THREE.Vector3(0, 1, 0);
 
   // ---------- one agent
-  function make(kind) {
+  function make(kind, lead = false) {
     const G = new THREE.Group(), body = new THREE.Group(); G.add(body);
     const shadow = (m) => { m.castShadow = true; return m; };
     body.add(shadow(new THREE.Mesh(hoodieGeo, fleece)));
@@ -288,9 +288,9 @@ export function createBotFactory({ tex, loadTex, studio, mirror }) {
     body.add(new THREE.Mesh(tipGeo, silver));
 
     // chest and back marks
-    const chest = new THREE.Mesh(new THREE.PlaneGeometry(kind === 'chrome' ? .2 : .25, kind === 'chrome' ? .2 : .078), kind === 'chrome' ? chestGlobe : chestWord);
+    const chest = new THREE.Mesh(new THREE.PlaneGeometry(lead ? .2 : .25, lead ? .2 : .078), lead ? chestGlobe : chestWord);
     chest.position.set(.235, 2.03, .375); chest.rotation.y = .36; chest.renderOrder = 2; body.add(chest);
-    if (kind === 'chrome') {
+    if (lead) {
       const back = new THREE.Mesh(new THREE.PlaneGeometry(.72, .9), backPrint);
       back.position.set(0, 1.74, -.44); back.rotation.y = PI; back.renderOrder = 2; body.add(back);
     }
@@ -362,7 +362,7 @@ export function createBotFactory({ tex, loadTex, studio, mirror }) {
       const puffs = [];
       for (let i = 0; i < 22; i++) {
         const haze = i < 6;
-        const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: haze ? smokeTex : wispTex, color: '#b9c8ff', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 }));
+        const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: haze ? smokeTex : wispTex, color: '#ffffff', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 }));
         m.userData = { haze, ph: Math.random(), r: R * (haze ? 1 : 1.05 + Math.random() * .4), a: Math.random() * 6.28, sp: .09 + Math.random() * .1, y0: -R * .9 + Math.random() * R, sz: haze ? .55 : .5 + Math.random() * .4 };
         m.renderOrder = 4; H.add(m); puffs.push(m);
       }
@@ -434,8 +434,10 @@ export function createBotFactory({ tex, loadTex, studio, mirror }) {
     const want = new THREE.Vector3(), wantPole = new THREE.Vector3();
 
     // called every frame with what the agent is really doing
-    function pose({ t, dt, moving, phase, view, happy }) {
-      const seated = (view === 'working' || view === 'quiet') && !moving;
+    const phone = new THREE.Group(); phone.visible = false; body.add(phone);
+    { const c = new THREE.Mesh(phoneGeo, phoneCase), sc = new THREE.Mesh(phoneScreenGeo, phoneScreen); sc.position.z = .012; phone.add(c, sc); }
+    function pose({ t, dt, moving, phase, view, happy, activity = null }) {
+      const seated = (view === 'working' || view === 'quiet' || !!activity) && !moving;
       const ease = Math.min(1, dt * 6);
       st.sit += ((seated ? 1 : 0) - st.sit) * ease;
       const waving = view === 'waiting' && !moving;
@@ -455,6 +457,14 @@ export function createBotFactory({ tex, loadTex, studio, mirror }) {
         if (typing) {
           want.set(s * .17, 1.83 + Math.sin(t * 13 + s * 1.7) * .012, .66 + Math.sin(t * 7 + s) * .012);
           wantPole.set(s * .6, -1, -.25);
+        } else if (activity && st.sit > .55) {
+          const slow = Math.sin(t * .9 + phase), wr = s === 1;
+          if (activity === 'laptop') { want.set(s * .17, 1.82 + Math.sin(t * 13 + s * 1.7) * .012, .66); wantPole.set(s * .6, -1, -.25); }
+          else if (activity === 'phone') { want.set(s * .1, 2.12 + slow * .01, .56); wantPole.set(s * .7, -1, -.1); }
+          else if (activity === 'ipad') { if (wr) want.set(.1 + slow * .08, 1.86 + Math.max(0, Math.sin(t * 2.2)) * .05, .72); else want.set(-.3, 1.8, .55); wantPole.set(s * .6, -1, -.25); }
+          else if (activity === 'writing') { if (wr) want.set(.08 + ((t * .35 + phase) % 1) * .22, 1.81 + Math.sin(t * 9) * .006, .76 + Math.sin(t * .8) * .03); else want.set(-.26, 1.8, .72); wantPole.set(s * .6, -1, -.25); }
+          else if (activity === 'eating') { const k = Math.pow(Math.max(0, Math.sin(t * .8 + phase)), 3); if (wr) want.set(.1 - k * .06, 1.84 + k * .72, .78 - k * .36); else want.set(-.3, 1.8, .6); wantPole.set(s * .75, -1, -.2); }
+          else { want.set(s * .28, 1.8, .6); wantPole.set(s * .6, -1, -.25); }
         } else if (waving && s === 1) {
           want.set(.66 + Math.sin(t * 5) * .1, 2.72, .14);
           wantPole.set(.9, -.6, -.3);
@@ -471,7 +481,9 @@ export function createBotFactory({ tex, loadTex, studio, mirror }) {
       body.rotation.x = moving ? .03 : 0;
 
       H.rotation.z = moving ? 0 : Math.sin(t * 1.2 + phase) * .04;
-      H.rotation.x = moving ? Math.sin(phase * 2) * .025 : (view === 'quiet' ? .26 : view === 'working' ? .08 : 0);
+      H.rotation.x = moving ? Math.sin(phase * 2) * .025 : (view === 'quiet' ? .26 : view === 'working' ? .08 : activity === 'phone' ? .3 : activity === 'writing' ? .34 : activity === 'ipad' ? .18 : activity === 'laptop' ? .1 : activity === 'eating' ? .1 : 0);
+      phone.visible = activity === 'phone' && st.sit > .7;
+      if (phone.visible) { phone.position.set(0, 2.16, .6); phone.rotation.x = -.75; }
 
       if (setFace) {
         const next = happy ? 'h' : ((t + phase) % 4 < .12 ? 'b' : 'n');
