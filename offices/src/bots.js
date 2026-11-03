@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
-export const KINDS = ['liquid', 'smoke', 'chrome', 'glitch', 'box']; // by desk; the lead sits in the centre
+export const KINDS = ['box', 'glitch', 'smoke', 'box', 'glitch', 'smoke']; // by desk: two blue heads, two glitch, two white smoke
 
 const R = .37;            // head radius
 const HEAD_Y = 2.8;
@@ -434,8 +434,9 @@ export function createBotFactory({ tex, loadTex, studio, mirror }) {
     const want = new THREE.Vector3(), wantPole = new THREE.Vector3();
 
     // called every frame with what the agent is really doing
-    function pose({ t, dt, moving, phase, view, happy }) {
-      const seated = (view === 'working' || view === 'quiet') && !moving;
+    function pose({ t, dt, moving, phase, view, happy, activity }) {
+      const act = moving ? null : activity;
+      const seated = (view === 'working' || view === 'quiet' || !!act) && !moving;
       const ease = Math.min(1, dt * 6);
       st.sit += ((seated ? 1 : 0) - st.sit) * ease;
       const waving = view === 'waiting' && !moving;
@@ -452,7 +453,18 @@ export function createBotFactory({ tex, loadTex, studio, mirror }) {
 
         const a = arms[s];
         const typing = view === 'working' && st.sit > .55;
-        if (typing) {
+        if (act && st.sit > .55) {
+          // off the clock at the long table; the props in scene.js sit where these hands land
+          if (act === 'laptop') want.set(s * .17, 1.83 + Math.sin(t * 9 + s * 1.7) * .01, .66);
+          else if (act === 'tablet') want.set(s * .2, 2.05, .5);
+          else if (act === 'phone') { if (s === 1) want.set(.08, 2.1 + Math.sin(t * .8) * .01, .44); else want.set(-.3, 1.83, .62); }
+          else if (act === 'writing') { if (s === 1) want.set(.12 + Math.sin(t * 2.4) * .07, 1.84, .76 + Math.sin(t * 7) * .012); else want.set(-.22, 1.82, .72); }
+          else { // eating: fork from the plate to the mouth and back
+            const lift = Math.max(0, Math.sin(t * .9 + phase)) ** 2;
+            if (s === 1) want.set(.14 - lift * .08, 1.84 + lift * .72, .74 - lift * .4); else want.set(-.24, 1.82, .68);
+          }
+          wantPole.set(s * .6, -1, -.25);
+        } else if (typing) {
           want.set(s * .17, 1.83 + Math.sin(t * 13 + s * 1.7) * .012, .66 + Math.sin(t * 7 + s) * .012);
           wantPole.set(s * .6, -1, -.25);
         } else if (waving && s === 1) {
@@ -471,7 +483,7 @@ export function createBotFactory({ tex, loadTex, studio, mirror }) {
       body.rotation.x = moving ? .03 : 0;
 
       H.rotation.z = moving ? 0 : Math.sin(t * 1.2 + phase) * .04;
-      H.rotation.x = moving ? Math.sin(phase * 2) * .025 : (view === 'quiet' ? .26 : view === 'working' ? .08 : 0);
+      H.rotation.x = moving ? Math.sin(phase * 2) * .025 : (view === 'quiet' ? .26 : view === 'working' ? .08 : act === 'eating' ? .1 : act ? .28 : 0);
 
       if (setFace) {
         const next = happy ? 'h' : ((t + phase) % 4 < .12 ? 'b' : 'n');
@@ -484,7 +496,7 @@ export function createBotFactory({ tex, loadTex, studio, mirror }) {
       tickKind(t, dt);
     }
 
-    return { G, body, H, kind, pose, seat: st };
+    return { G, body, H, kind, pose, seat: st, rightHand: arms[1].hand };
   }
 
   return { make, tick: (t) => { time.value = t; } };

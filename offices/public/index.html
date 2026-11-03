@@ -59,6 +59,26 @@ h1 span:first-child{color:var(--accent)}
 .btn.pri{background:var(--accent);border-color:var(--accent);color:#0a0a0d}
 .btn.pri:hover{filter:brightness(1.08)}
 .btn:active{transform:translateY(1px)}
+#askbtns{display:contents}
+.btn.yes{background:var(--ok);border-color:var(--ok);color:#04140a}
+.btn.yes:hover{filter:brightness(1.08);background:var(--ok);border-color:var(--ok)}
+.btn:disabled{opacity:.5;cursor:default}
+#askq{margin:0;padding:9px 14px;font-size:13px;line-height:1.4;color:var(--txt);background:rgba(245,158,11,.12);border-bottom:1px solid rgba(245,158,11,.35)}
+#askq b{color:var(--warn)}
+#askq.done{background:var(--card);border-color:var(--line);color:var(--dim)}
+#askq.done b{color:var(--txt)}
+.askerr{color:var(--bad);margin-left:6px}
+.card-q{margin:0;padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.4;background:rgba(245,158,11,.12);color:var(--txt)}
+.card-q.done{background:var(--card2);color:var(--dim)}
+.card .btn.yes{background:var(--ok);border-color:var(--ok)}
+#pass{width:min(360px,calc(100vw - 32px));padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--txt)}
+#pass::backdrop{background:rgba(0,0,0,.65)}
+#pass h2{margin:0 0 6px;font-size:15px}
+#pass p{margin:0 0 12px;font-size:13px;line-height:1.4;color:var(--dim)}
+#pass label{display:block;margin-bottom:6px;font-size:12px;font-weight:600}
+#passin{width:100%;box-sizing:border-box;min-height:40px;padding:0 10px;border:1px solid #33333d;border-radius:8px;background:var(--card);color:var(--txt);font:16px/1 inherit;font-family:inherit}
+#passerr{min-height:18px;margin:6px 0 10px;font-size:12px;color:var(--bad)}
+#pass .row{display:flex;justify-content:flex-end;gap:8px}
 #nochat{color:var(--faint);font-size:12px}
 .conn{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--faint);white-space:nowrap}
 .conn:before{content:'';width:7px;height:7px;border-radius:50%;background:#3b3b45}
@@ -188,10 +208,12 @@ dialog#all::backdrop{background:rgba(3,3,6,.72)}
       <div id="acts">
         <span id="conn" class="conn">connecting</span>
         <span id="nochat">chat not linked yet</span>
+        <span id="askbtns"></span>
         <a id="chat" class="btn pri" target="_blank" rel="noopener" hidden>Open chat</a>
         <a id="site" class="btn" target="_blank" rel="noopener"></a>
       </div>
     </div>
+    <p id="askq" role="status" hidden></p>
     <div id="view">
       <div id="ov"></div>
       <div id="hud">loading…</div>
@@ -217,6 +239,16 @@ dialog#all::backdrop{background:rgba(3,3,6,.72)}
   <div id="allgrid"></div>
 </dialog>
 
-<script type="module" src="assets/main-UO67NYVL.js"></script>
+<script type="module" src="assets/main-P6NAOESV.js"></script>
+<dialog id="pass" aria-labelledby="passh">
+  <form id="passform">
+    <h2 id="passh">Confirm it's you</h2>
+    <p>Enter your passcode once. This device remembers it, so after this one click answers.</p>
+    <label for="passin">Passcode</label>
+    <input id="passin" type="password" autocomplete="current-password" spellcheck="false">
+    <div id="passerr" role="alert"></div>
+    <div class="row"><button id="passno" class="btn" type="button">Cancel</button><button id="passgo" class="btn pri" type="submit">Unlock and send</button></div>
+  </form>
+</dialog>
 </body>
 </html>

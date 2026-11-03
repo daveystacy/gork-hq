@@ -31,7 +31,7 @@ const NAMES = { gamey: 'Game Office', tradey: 'Trade Office', arty: 'NFT Office'
 const iso = (minsAgo = 0) => new Date(Date.now() - minsAgo * 60e3).toISOString();
 const team = (o) => [
   ['a0', 'World', 'campus, maps and levels', '#ff9a1f'], ['a1', 'Characters', 'models and rigs', '#3b82ff'], [o, o[0].toUpperCase() + o.slice(1), 'office lead', '#dfe6ff'],
-  ['a3', 'Gameplay', 'modes and controls', '#2dff7a'], ['a4', 'Playtest', 'browser tests', '#a24bff'],
+  ['a3', 'Gameplay', 'modes and controls', '#2dff7a'], ['a4', 'Playtest', 'browser tests', '#a24bff'], ['a5', 'Assist', 'helps wherever it is needed', '#e8e8ee'],
 ].map(([id, name, role, color], seat) => ({ office: o, id, name, role, color, seat, state: 'idle', task: '', progress: null, since: iso(60), heard_at: null }));
 
 function blankWorld() {
@@ -65,7 +65,17 @@ async function openOffice(ctx, office, world) {
   await page.route(/supabase\.co\/rest\/v1\/(.*)/, (r) => {
     const u = new URL(r.request().url()), table = u.pathname.split('/').pop(), o = (u.searchParams.get('office') || '').replace('eq.', '');
     let json = [];
-    if (table === 'office_agents') json = world.agents[o] || [];
+    if (table === 'office_owner_check') { json = JSON.parse(r.request().postData()).p_pass === 'right-pass'; return r.fulfill({ json, headers: { 'access-control-allow-origin': '*' } }); }
+    if (table === 'office_answer') {
+      const b = JSON.parse(r.request().postData());
+      if (b.p_pass !== 'right-pass') return r.fulfill({ status: 403, json: { code: '42501', message: 'unauthorized' } });
+      const q = (world.requests || []).find((x) => x.id === b.p_id && x.status === 'pending');
+      if (!q) return r.fulfill({ status: 400, json: { code: 'P0002', message: 'closed' } });
+      Object.assign(q, { status: 'answered', answer: b.p_answer, answered_at: iso(0) });
+      return r.fulfill({ json: { ok: true } });
+    }
+    if (table === 'office_requests') json = (world.requests || []).filter((x) => x.status === 'pending' || !x.seen_at);
+    else if (table === 'office_agents') json = world.agents[o] || [];
     else if (table === 'office_tasks') json = world.tasks[o] || [];
     else if (table === 'office_log') json = world.log[o] || [];
     else if (table === 'office_summary') json = summary(world);
@@ -81,11 +91,11 @@ const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 
 const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
 
 // 1. every office, freshly set up: real name, three.js running, no errors, no sideways scroll
-for (const o of OFFICES) {
+for (const o of process.env.QUICK ? ['minty', 'betty'] : OFFICES) {
   const world = blankWorld();
   for (const [ctx, label] of [[desktop, 'desktop'], [phone, 'phone']]) {
     const { page, errors } = await openOffice(ctx, o, world);
-    await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 5, null, { timeout: 45000 });
+    await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 6, null, { timeout: 45000 });
     await page.waitForTimeout(label === 'desktop' ? 2500 : 1500);
     const title = await page.title();
     check(title.includes(NAMES[o]), `${o} ${label}: title says ${NAMES[o]}`);
@@ -105,7 +115,7 @@ for (const o of OFFICES) {
 {
   const world = blankWorld();
   const { page, errors } = await openOffice(desktop, 'gamey', world);
-  await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 5, null, { timeout: 45000 });
+  await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 6, null, { timeout: 45000 });
   const a0 = world.agents.gamey[0];
   Object.assign(a0, { state: 'working', task: 'Blocking out the ECA dorms', progress: 35, heard_at: iso(0) });
   world.tasks.gamey.push({ id: 1, office: 'gamey', title: 'Block out the ECA dorms', owner: 'a0', status: 'in-progress', note: '', created_at: iso(1), started_at: iso(1), finished_at: null, updated_at: iso(0) });
@@ -154,7 +164,7 @@ for (const o of OFFICES) {
   Object.assign(world.agents.minty[1], { state: 'working', task: 'ExpireBings mint page', progress: 60, heard_at: iso(1) });
   world.tasks.minty.push({ id: 2, office: 'minty', title: 'ExpireBings mint page', owner: 'a1', status: 'in-progress', note: '', created_at: iso(10), started_at: iso(9), finished_at: null, updated_at: iso(1) });
   const { page } = await openOffice(desktop, 'gamey', world);
-  await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 5, null, { timeout: 45000 });
+  await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 6, null, { timeout: 45000 });
   await page.waitForFunction(() => document.querySelector('#sw .dot.waiting'), null, { timeout: 30000 });
   await page.click('#allbtn');
   await page.waitForFunction(() => document.querySelectorAll('#allgrid .card').length === 8);
@@ -172,6 +182,60 @@ for (const o of OFFICES) {
   await p2.waitForFunction(() => document.getElementById('all').open && document.querySelectorAll('#allgrid .card').length === 8);
   check(true, 'no office in the address lands on the overview');
   await p2.close();
+}
+
+// 4. a chat's question becomes buttons next to Open chat; the passcode is asked once, then a click answers
+{
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const world = blankWorld();
+  world.agents.minty[2].state = 'waiting_user';
+  world.requests = [
+    { id: 1, office: 'minty', agent: 'minty', question: 'Merge the mint page PR to expire.org?', options: ['Approve', 'Decline'], status: 'pending', created_at: iso(1) },
+    { id: 2, office: 'minty', agent: 'minty', question: 'Which hero image?', options: ['Dark', 'Light', 'Hold off'], status: 'pending', created_at: iso(0) },
+  ];
+  const { page, errors } = await openOffice(ctx, 'minty', world);
+  await page.waitForSelector('#askbtns [data-ans="Approve"]', { timeout: 45000 });
+  check(await page.evaluate(() => { const a = document.querySelector('#askbtns [data-ans="Approve"]').getBoundingClientRect(), c = document.getElementById('chat').getBoundingClientRect(); return Math.abs(a.top - c.top) < 4 && a.right <= c.left; }), 'Approve sits right next to Open chat');
+  check((await page.locator('#askq').textContent()).includes('Merge the mint page PR') && (await page.locator('#askq').textContent()).includes('1 of 2'), 'the question shows with how many are waiting');
+  if (shots) await page.screenshot({ path: path.join(shots, 'ask-desktop.png') });
+  await page.click('#askbtns [data-ans="Approve"]');
+  await page.waitForSelector('#pass[open]');
+  await page.fill('#passin', 'wrong'); await page.click('#passgo');
+  await page.waitForFunction(() => document.getElementById('passerr').textContent.includes("didn't match"));
+  check(world.requests[0].status === 'pending', 'a wrong passcode answers nothing');
+  await page.fill('#passin', 'right-pass'); await page.click('#passgo');
+  await page.waitForFunction(() => document.getElementById('askq').textContent.includes('Which hero image'));
+  check(world.requests[0].answer === 'Approve', 'the right passcode sends the answer that was clicked');
+  check((await page.locator('#askbtns .btn').count()) === 3, 'the next question brings its own choices');
+  await page.click('#askbtns [data-ans="Dark"]');
+  await page.waitForFunction(() => document.getElementById('askq').textContent.includes("hasn't picked this up"));
+  check(world.requests[1].answer === 'Dark' && !(await page.locator('#pass[open]').count()), 'the second click needs no passcode');
+  check((await page.locator('#askbtns .btn').count()) === 0, 'buttons leave once answered, and the office says the chat has not picked it up');
+  world.requests.forEach((r) => { r.seen_at = iso(0); });
+  await page.reload();
+  await page.waitForFunction(() => document.getElementById('hud')?.textContent !== 'loading…', null, { timeout: 45000 });
+  await page.waitForTimeout(800);
+  check(await page.locator('#askq').isHidden(), 'once the chat picks it up the note clears');
+  check(errors.length === 0, `no page errors on the answer flow ${errors.slice(0, 2).join(' | ')}`);
+  await page.close();
+  const p2 = await phone.newPage();
+  const w2 = blankWorld();
+  w2.requests = [{ id: 3, office: 'minty', agent: 'minty', question: 'Merge the mint page PR to expire.org? It changes the home page hero and the mint button on every collection.', options: ['Approve', 'Decline'], status: 'pending', created_at: iso(0) }];
+  await p2.close();
+  const { page: ph } = await openOffice(phone, 'minty', w2);
+  await ph.waitForSelector('#askbtns [data-ans="Approve"]', { timeout: 45000 });
+  await ph.waitForTimeout(800);
+  check((await ph.evaluate(() => document.documentElement.scrollWidth - innerWidth)) <= 0, 'phone: buttons cause no sideways scroll');
+  if (shots) await ph.screenshot({ path: path.join(shots, 'ask-phone.png') });
+  await ph.close();
+  // the all-offices sheet answers too
+  const { page: pa } = await openOffice(ctx, 'gamey', w2);
+  await pa.click('#allbtn');
+  await pa.waitForSelector('.card [data-ans="Approve"]', { timeout: 15000 });
+  check(true, 'the all-offices sheet shows the buttons');
+  if (shots) await pa.screenshot({ path: path.join(shots, 'ask-all.png') });
+  await pa.close();
+  await ctx.close();
 }
 
 await browser.close();

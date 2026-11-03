@@ -1,7 +1,7 @@
 // The page around the 3D office: the office switcher, the team, tasks and activity, and the all-offices sheet.
 
 import { OFFICES, ORDER, GORK, officeFromAddress, officeHref } from './offices.js';
-import { loadOffice, loadSummary, loadGork, subscribe, cacheGet, cacheSet, agentView, officeState, STATE_WORD, ago, clock } from './data.js';
+import { loadOffice, loadSummary, loadRequests, ownerCheck, answerRequest, loadGork, subscribe, cacheGet, cacheSet, agentView, officeState, STATE_WORD, ago, clock } from './data.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -10,7 +10,7 @@ const safeUrl = (u) => (/^https:\/\//.test(u || '') ? u : '');
 const id = officeFromAddress();
 const cfg = id ? OFFICES[id] : null;
 
-const S = { office: null, summary: cacheGet('summary') || [], gork: cacheGet('gork') || null, conn: 'connecting', realtime: false, lastGood: null };
+const S = { requests: [], office: null, summary: cacheGet('summary') || [], gork: cacheGet('gork') || null, conn: 'connecting', realtime: false, lastGood: null };
 let office3d = null;
 let renderedSig = {};
 
@@ -52,6 +52,82 @@ function renderHeader() {
   a.href = chat || '#'; a.toggleAttribute('hidden', !chat);
   const note = $('nochat');
   note.hidden = !!chat;
+}
+
+// ---------- one-click answers: what a chat asked, as buttons next to Open chat
+
+const PASS_KEY = 'xpo:owner';
+let memPass = null, afterUnlock = null, askError = '';
+function getPass() { try { return localStorage.getItem(PASS_KEY) || memPass; } catch { return memPass; } }
+function setPass(v) {
+  memPass = v;
+  try { if (v) localStorage.setItem(PASS_KEY, v); else localStorage.removeItem(PASS_KEY); } catch { /* private window: it lasts until the tab closes */ }
+}
+const openFor = (k) => S.requests.filter((r) => r.office === k && r.status === 'pending');
+const unseenFor = (k) => S.requests.filter((r) => r.office === k && r.status === 'answered');
+const askButtons = (r) => r.options.map((o, i) => `<button type="button" class="btn${i === 0 ? ' yes' : ''}" data-req="${Number(r.id)}" data-ans="${esc(o)}">${esc(o)}</button>`).join('');
+const unseenLine = (r) => `You answered <b>${esc(r.answer)}</b>. The chat hasn't picked this up yet; open the chat if it doesn't move soon.`;
+
+function renderAsk() {
+  const open = openFor(id), r = open[0], done = unseenFor(id).at(-1);
+  setOnce('askbtns', $('askbtns'), r ? askButtons(r) : '');
+  const el = $('askq');
+  const who = r ? S.office?.agents?.find((a) => a.id === r.agent)?.name : '';
+  const html = r
+    ? `<b>${esc(who || cfg.name)} needs you${open.length > 1 ? ` (1 of ${open.length})` : ''}:</b> ${esc(r.question)}`
+    : done ? unseenLine(done) : '';
+  setOnce('askq', el, html + (askError ? ` <span class="askerr">${esc(askError)}</span>` : ''));
+  el.hidden = !html && !askError;
+  el.classList.toggle('done', !r);
+}
+
+async function sendAnswer(reqId, answer) {
+  const pass = getPass();
+  if (!pass) { afterUnlock = () => sendAnswer(reqId, answer); openPass(); return; }
+  askError = '';
+  document.querySelectorAll(`[data-req="${reqId}"]`).forEach((b) => { b.disabled = true; });
+  try {
+    await answerRequest(pass, reqId, answer);
+    const r = S.requests.find((x) => x.id === reqId);
+    if (r) Object.assign(r, { status: 'answered', answer, answered_at: new Date().toISOString() });
+  } catch (e) {
+    if (e.code === '42501') { setPass(null); afterUnlock = () => sendAnswer(reqId, answer); openPass('That passcode is no longer valid.'); }
+    else askError = e.code === 'P0002' ? 'That question was already answered or taken back.' : 'Your answer didn\'t go through. Try again.';
+    document.querySelectorAll(`[data-req="${reqId}"]`).forEach((b) => { b.disabled = false; });
+  }
+  renderedSig.askbtns = renderedSig.allgrid = null;
+  if (cfg) renderAsk();
+  renderAll();
+  refreshRequests().catch(() => {});
+}
+
+function openPass(msg = '') {
+  $('passerr').textContent = msg;
+  $('passin').value = '';
+  $('pass').showModal();
+}
+
+function setupAsk() {
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ans]');
+    if (b && !b.disabled) sendAnswer(Number(b.dataset.req), b.dataset.ans);
+  });
+  $('passform').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const v = $('passin').value.trim();
+    if (!v) { $('passerr').textContent = 'Enter your passcode.'; return; }
+    $('passgo').disabled = true;
+    try {
+      if (await ownerCheck(v)) {
+        setPass(v);
+        $('pass').close();
+        const next = afterUnlock; afterUnlock = null;
+        next?.();
+      } else $('passerr').textContent = 'That passcode didn\'t match. Check it and try again.';
+    } catch { $('passerr').textContent = 'Can\'t check it right now. Try again in a moment.'; }
+    $('passgo').disabled = false;
+  });
+  $('passno').addEventListener('click', () => { afterUnlock = null; $('pass').close(); });
 }
 
 function renderConn() {
@@ -173,13 +249,15 @@ function renderAll() {
   const cards = ORDER.map((k) => {
     const o = OFFICES[k], r = byId[k], st = officeState(r, now), chat = safeUrl(r?.chat_url);
     const counts = r ? [[r.tasks_active, 'active'], [r.tasks_queued, 'queued'], [r.tasks_blocked, 'blocked'], [r.tasks_done, 'done']] : [];
+    const ask = openFor(k)[0], askDone = unseenFor(k).at(-1);
     const act = r?.last_activity ? ago(now - Date.parse(r.last_activity)) : 'no activity yet';
     return `<article class="card${k === id ? ' here' : ''}" style="--a:${o.accent}">
       <header><h3>${esc(o.name)}</h3><span class="st ${st}">${esc(STATE_WORD[st])}</span></header>
       <p class="card-f">${esc(r?.focus || o.blurb)}</p>
       <dl>${counts.map(([v, w]) => `<div><dt>${esc(w)}</dt><dd>${Number(v) || 0}</dd></div>`).join('')}</dl>
       <small>${esc(o.domain)} · ${esc(act)}</small>
-      <div class="card-a"><a class="btn pri" href="${esc(officeHref(k))}">Enter office</a>${chat ? `<a class="btn" href="${esc(chat)}" target="_blank" rel="noopener">Open chat</a>` : ''}</div>
+      ${ask ? `<p class="card-q">${esc(ask.question)}</p>` : askDone ? `<p class="card-q done">${unseenLine(askDone)}</p>` : ''}
+      <div class="card-a">${ask ? askButtons(ask) : ''}<a class="btn${ask ? '' : ' pri'}" href="${esc(officeHref(k))}">Enter office</a>${chat ? `<a class="btn" href="${esc(chat)}" target="_blank" rel="noopener">Open chat</a>` : ''}</div>
     </article>`;
   });
   const g = S.gork;
@@ -206,12 +284,17 @@ async function refreshSummary() {
   cacheSet('summary', S.summary);
   renderSwitcher(); if (cfg) renderHeader(); renderAll();
 }
+async function refreshRequests() {
+  S.requests = await loadRequests();
+  if (cfg) renderAsk();
+  renderAll();
+}
 async function refreshGork() {
   try { S.gork = await loadGork(); cacheSet('gork', S.gork); renderSwitcher(); renderAll(); } catch { /* the switcher just keeps its last known state */ }
 }
 async function refreshAll() {
   try {
-    await Promise.all([refreshOffice(), refreshSummary()]);
+    await Promise.all([refreshOffice(), refreshSummary(), refreshRequests()]);
     S.conn = S.realtime ? 'live' : 'polling';
   } catch (e) {
     console.warn('office data unavailable', e);
@@ -236,6 +319,7 @@ function boot() {
   const m = document.querySelector('meta[name="apple-mobile-web-app-title"]');
   if (m) m.content = cfg ? cfg.name : 'Expire Offices';
 
+  setupAsk();
   const dlg = $('all');
   $('allbtn').addEventListener('click', () => { renderAll(); dlg.showModal(); });
   $('allclose').addEventListener('click', () => dlg.close());

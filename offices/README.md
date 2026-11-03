@@ -23,7 +23,8 @@ The trading bot's office, gork.expire.org, is the page at the root of this repo 
 
 ## What the office will and won't show
 
-- Only real reports. Nothing on the floor is simulated; idle bots wander because they are idle.
+- Only real reports. Nothing on the floor is simulated. Desks sit out at the corners and sides: a bot at its desk with the ring lit is working. A bot with nothing reported sits at the long table on a phone, laptop or tablet, writing or eating.
+- Six agents per office, by seat: two blue heads, two glitch, two white smoke.
 - An agent that says it is working but hasn't reported for 20 minutes shows as **gone quiet**, with how long it has been silent. It is never shown as working on old information.
 - **Waiting on you** turns amber on the floor, in the switcher, in All offices and in the tab title.
 - Decor carries no prices, balances or mint counts. The only numbers in an office are real ones.
@@ -46,6 +47,22 @@ select office_focus('gamey','ECA dorms, first floor');                          
 ```
 
 States: `idle`, `working`, `meeting`, `waiting_user`. Every `office_report` counts as proof of life, so repeat it while working (at least every 10 minutes).
+
+## Asking the owner (one-click buttons)
+
+Anything that needs the owner's go-ahead goes through the office, so it appears as buttons next to Open chat:
+
+```sql
+select office_ask('minty','minty','Merge PR #12 to expire.org?');                      -- Approve / Decline, returns the request id
+select office_ask('minty','pages','Which hero?', array['Dark','Light','Hold off']);    -- your own choices, 2 to 4, up to 24 characters each
+select office_request_check(7);                                                        -- {status, answer}; also tells the office you picked it up
+select office_request_cancel(7);                                                       -- take a question back
+```
+
+- The owner unlocks a device once with a passcode. Only its SHA-256 is stored (`office_owner_key`), and `office_answer` rejects anyone without it.
+- A click can't wake a chat. After asking, check for the answer: keep working if you can, otherwise check again every few minutes while you wait (`send_later`), and on every message from the owner. The office shows when an answer hasn't been picked up yet.
+- Never for real money, on-chain mints or wallet signing: the owner approves those by saying so in the chat. `office_ask` refuses obvious money wording as a backstop.
+- Claude's own Allow prompts live inside the Claude app and can't be pressed from a web page.
 
 ## Reporting (from anything else)
 

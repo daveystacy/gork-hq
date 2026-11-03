@@ -1,5 +1,6 @@
 // What makes each office its own place. The room, desks and team are shared (scene.js);
-// each office gets its own set piece in the open floor (x -0.5..7.2, z 1..6.4), facing the camera (+z).
+// each office gets its own set piece, drawn in local x -0.5..7.2, z 1..6.4 and placed by scene.js in front of the long table, facing the camera (+z).
+// k.room draws in room coordinates instead (the back wall); k.tableAt turns a spot on the long table into local coordinates.
 // Every theme returns the floor it blocks (so the bots walk around it) and an optional animation tick.
 // Decor shows no prices, balances or mint counts: the only numbers in an office are real ones.
 
@@ -68,13 +69,13 @@ function gamey(k) {
   const games = [['expireverse', '#38bdf8'], ['ExpireRoyale', '#f97316'], ['ExpireBattles', '#ef4444'], ['ExpireVille', '#22c55e']];
   games.forEach(([n, c], i) => arcade(k, n, c, .75 + i * 1.8, 1.55));
   const blocked = [[.05, 1.05, 6.85, 2.3], sofa(k, 3.4, 5.5, '#14304f'), lowTable(k, 3.4, 4)];
-  // a wireframe campus turning over the meeting table (the ECA is this office's next build)
+  // a wireframe campus turning over the long table (the ECA is this office's next build)
   const THREE = k.THREE, holo = new THREE.Group();
   const wire = new THREE.MeshBasicMaterial({ color: k.accent, wireframe: true, transparent: true, opacity: .55, toneMapped: false });
   [[0, .35, 0, .7, .7, .7], [-.65, .2, .25, .45, .4, .45], [.6, .25, -.3, .4, .5, .5], [.15, .15, .7, .6, .3, .3], [-.3, .15, -.65, .55, .3, .35]].forEach(([x, y, z, w, h, d]) => {
     const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wire); b.position.set(x, y, z); holo.add(b);
   });
-  holo.position.set(-4, 1.3, 2.5); k.scene.add(holo);
+  holo.position.set(...k.tableAt(0, 0, 1.75)); holo.scale.setScalar(.8); k.scene.add(holo);
   return { blocked, spots: [[1, 3.3], [5.9, 3.4], [.4, 4.9], [6.6, 5.2]], tick: (t) => { holo.rotation.y = t * .25; } };
 }
 
@@ -132,10 +133,11 @@ function framed(k, url, w, h, x, y, z, frame = '#17171c') {
 function arty(k) {
   const THREE = k.THREE;
   const wallArt = [['art/punks.webp', 3.04], ['art/punk-a.webp', 1.9], ['art/nfts.webp', 3.04], ['art/punk-b.webp', 1.9], ['art/mints-machines.webp', 3.38]];
+  const wallX = [-11.9, -8.6, -5.3, 5.3, 9];
   wallArt.forEach(([u, w], i) => {
-    framed(k, u, w, 1.9, -7.5 + i * 3.8, 2.8, -6.78);
+    framed({ ...k, ...k.room }, u, w, 1.9, wallX[i], 2.8, -9.78);
     const lamp = k.M('#fff', { emissive: '#fff', emissiveIntensity: 1.4 });
-    k.box(Math.min(w, 2.2), .03, .06, lamp, -7.5 + i * 3.8, 3.98, -6.72);
+    k.room.box(Math.min(w, 2.2), .03, .06, lamp, wallX[i], 3.98, -9.72);
   });
   // the big wall: ExpireBings, on a freestanding panel
   k.box(5.1, 3.15, .22, k.M('#0b0b0e', { roughness: .5 }), 3.4, 1.7, 1.45);
@@ -206,9 +208,9 @@ function betty(k) {
   const lay = new THREE.Mesh(new THREE.PlaneGeometry(1.7, .52), new THREE.MeshStandardMaterial({ map: layout, roughness: .8 }));
   lay.rotation.x = -Math.PI / 2; lay.position.set(4, .935, 4.6); k.scene.add(lay);
   const redGlow = new THREE.PointLight('#f43f5e', 3, 6); redGlow.position.set(3.4, 2.4, 3); k.scene.add(redGlow);
-  // chips on the poker table (the round table at -4, 2.5)
-  const chip = (c, x, z, n) => { for (let i = 0; i < n; i++) k.cyl(.11, .11, .035, 20, k.M(c, { roughness: .4 }), x, 1.07 + i * .037, z); };
-  chip('#c81e3a', -4.5, 2.1, 5); chip('#111', -3.4, 2.2, 4); chip('#e8e2c8', -4.2, 3.1, 6); chip('#1d4ed8', -3.3, 3, 3);
+  // chips down the middle of the long table, which is felt in this office
+  const chip = (c, dx, dz, n) => { const [x, y, z] = k.tableAt(dx, dz, 1.22); for (let i = 0; i < n; i++) k.cyl(.11, .11, .035, 20, k.M(c, { roughness: .4 }), x, y + i * .037, z); };
+  chip('#c81e3a', -1.8, -.15, 5); chip('#111', -1.4, .1, 4); chip('#e8e2c8', 1.5, -.1, 6); chip('#1d4ed8', 1.9, .12, 3);
   return { blocked: [[.2, 1.05, 6.65, 2.1], [1.65, 3.7, 5.15, 5.5]], spots: [[.6, 3], [6.4, 3], [.6, 5.6], [6.4, 5.6], [3.4, 6.1]], tick: (t) => { wheel.rotation.y = t * .5; } };
 }
 

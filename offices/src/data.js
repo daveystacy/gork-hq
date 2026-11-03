@@ -19,6 +19,21 @@ export async function loadOffice(id) {
   return { agents, tasks, log };
 }
 
+// questions a chat has asked the owner, plus answers the chat hasn't picked up yet (for a day, then they stop nagging)
+export async function loadRequests() {
+  const rows = await rest('office_requests?or=(status.eq.pending,and(status.eq.answered,seen_at.is.null))&select=*&order=created_at');
+  return rows.filter((r) => r.status === 'pending' || Date.now() - Date.parse(r.answered_at) < 864e5);
+}
+
+async function rpc(fn, args) {
+  const r = await fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: PK, 'content-type': 'application/json' }, body: JSON.stringify(args) });
+  const body = await r.json().catch(() => null);
+  if (!r.ok) { const e = new Error(body?.message || `${fn}: ${r.status}`); e.code = body?.code; throw e; }
+  return body;
+}
+export const ownerCheck = (pass) => rpc('office_owner_check', { p_pass: pass });
+export const answerRequest = (pass, reqId, answer) => rpc('office_answer', { p_pass: pass, p_id: reqId, p_answer: answer });
+
 export const loadSummary = () => rest('office_summary?select=*');
 
 export async function loadGork() {
@@ -37,6 +52,7 @@ export async function subscribe(office, onChange, onStatus) {
     const on = (table, filter) => ch.on('postgres_changes', { event: '*', schema: 'public', table, ...(filter ? { filter } : {}) }, (p) => onChange(table, p));
     on('offices');
     on('office_agents');
+    on('office_requests');
     on('office_tasks', office ? `office=eq.${office}` : undefined);
     on('office_log', office ? `office=eq.${office}` : undefined);
     ch.subscribe((status) => onStatus(status));
