@@ -1,0 +1,14 @@
+{
+  "name": "expire-offices",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node test/run.mjs"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "esbuild": "0.24.2",
+    "three": "0.160.0"
+  }
+}
