@@ -1,7 +1,7 @@
 // The page around the 3D office: the office switcher, the team, tasks and activity, and the all-offices sheet.
 
 import { OFFICES, ORDER, GORK, officeFromAddress, officeHref } from './offices.js';
-import { loadOffice, loadSummary, loadGork, subscribe, cacheGet, cacheSet, agentView, officeState, STATE_WORD, ago, clock } from './data.js';
+import { loadOffice, loadSummary, loadRequests, ownerOk, decide, loadGork, subscribe, cacheGet, cacheSet, agentView, officeState, STATE_WORD, ago, clock } from './data.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -10,7 +10,7 @@ const safeUrl = (u) => (/^https:\/\//.test(u || '') ? u : '');
 const id = officeFromAddress();
 const cfg = id ? OFFICES[id] : null;
 
-const S = { office: null, summary: cacheGet('summary') || [], gork: cacheGet('gork') || null, conn: 'connecting', realtime: false, lastGood: null };
+const S = { requests: [], office: null, summary: cacheGet('summary') || [], gork: cacheGet('gork') || null, conn: 'connecting', realtime: false, lastGood: null };
 let office3d = null;
 let renderedSig = {};
 
@@ -52,6 +52,60 @@ function renderHeader() {
   a.href = chat || '#'; a.toggleAttribute('hidden', !chat);
   const note = $('nochat');
   note.hidden = !!chat;
+}
+
+// ---------- decisions: Approve and Decline, for the owner only
+
+const PASS_KEY = 'xpo:owner';
+function getPass() { try { return localStorage.getItem(PASS_KEY) || ''; } catch { return ''; } }
+function setPass(v) { try { if (v) localStorage.setItem(PASS_KEY, v); else localStorage.removeItem(PASS_KEY); } catch { /* private window: asked again next visit */ } }
+let memPass = '';
+const pass = () => memPass || getPass();
+const pendingFor = (k) => S.requests.filter((r) => r.office === k);
+
+function decisionButtons(r) {
+  if (!pass()) return '<button class="btn owner" type="button" data-owner>Owner: unlock</button>';
+  return `<button class="btn ok" type="button" data-req="${Number(r.id)}" data-do="approved">${esc(r.approve_label)}</button><button class="btn no" type="button" data-req="${Number(r.id)}" data-do="declined">${esc(r.decline_label)}</button>`;
+}
+
+function renderAsk() {
+  const list = pendingFor(id), r = list[0];
+  setOnce('ask', $('ask'), r ? `<b>${list.length > 1 ? `1 of ${list.length}: ` : ''}${esc(r.question)}</b><small>Real money, tokens, NFT purchases and wallet signing are only ever approved in the chat.</small>` : '');
+  $('ask').hidden = !r;
+  setOnce('askbtns', $('askbtns'), r ? decisionButtons(r) : '');
+}
+
+function askPasscode() {
+  const d = $('unlock'); $('passerr').hidden = true; $('pass').value = ''; d.showModal(); $('pass').focus();
+}
+
+async function onDecision(e) {
+  if (e.target.closest('[data-owner]')) { askPasscode(); return; }
+  const b = e.target.closest('[data-req]');
+  if (!b || b.disabled) return;
+  b.parentElement.querySelectorAll('button').forEach((x) => { x.disabled = true; });
+  try {
+    await decide(pass(), Number(b.dataset.req), b.dataset.do);
+    S.requests = S.requests.filter((r) => r.id !== Number(b.dataset.req));
+    renderedSig.askbtns = null; renderedSig.allgrid = null;
+    if (cfg) renderAsk(); renderAll(); refreshAll();
+  } catch (err) {
+    b.parentElement.querySelectorAll('button').forEach((x) => { x.disabled = false; });
+    if (err.message === 'unauthorized') { memPass = ''; setPass(''); rerenderDecisions(); askPasscode(); $('passerr').textContent = 'That passcode no longer works. Enter the current one.'; $('passerr').hidden = false; }
+    else alert('That didn\'t go through, so nothing was decided. Check your connection and try again.');
+  }
+}
+
+function rerenderDecisions() { renderedSig.askbtns = null; renderedSig.allgrid = null; if (cfg) renderAsk(); renderAll(); }
+
+async function onUnlock(e) {
+  e.preventDefault();
+  const v = $('pass').value.trim();
+  if (!v) return;
+  try {
+    if (await ownerOk(v)) { memPass = v; setPass(v); $('unlock').close(); rerenderDecisions(); }
+    else { $('passerr').textContent = 'That passcode isn\'t right.'; $('passerr').hidden = false; }
+  } catch { $('passerr').textContent = 'Couldn\'t check it. Check your connection and try again.'; $('passerr').hidden = false; }
 }
 
 function renderConn() {
@@ -178,8 +232,9 @@ function renderAll() {
       <header><h3>${esc(o.name)}</h3><span class="st ${st}">${esc(STATE_WORD[st])}</span></header>
       <p class="card-f">${esc(r?.focus || o.blurb)}</p>
       <dl>${counts.map(([v, w]) => `<div><dt>${esc(w)}</dt><dd>${Number(v) || 0}</dd></div>`).join('')}</dl>
+      ${pendingFor(k)[0] ? `<p class="card-q">${esc(pendingFor(k)[0].question)}</p>` : ''}
       <small>${esc(o.domain)} · ${esc(act)}</small>
-      <div class="card-a"><a class="btn pri" href="${esc(officeHref(k))}">Enter office</a>${chat ? `<a class="btn" href="${esc(chat)}" target="_blank" rel="noopener">Open chat</a>` : ''}</div>
+      <div class="card-a">${pendingFor(k)[0] ? decisionButtons(pendingFor(k)[0]) : ''}<a class="btn pri" href="${esc(officeHref(k))}">Enter office</a>${chat ? `<a class="btn" href="${esc(chat)}" target="_blank" rel="noopener">Open chat</a>` : ''}</div>
     </article>`;
   });
   const g = S.gork;
@@ -206,12 +261,17 @@ async function refreshSummary() {
   cacheSet('summary', S.summary);
   renderSwitcher(); if (cfg) renderHeader(); renderAll();
 }
+async function refreshRequests() {
+  S.requests = await loadRequests();
+  if (cfg) renderAsk();
+  renderAll();
+}
 async function refreshGork() {
   try { S.gork = await loadGork(); cacheSet('gork', S.gork); renderSwitcher(); renderAll(); } catch { /* the switcher just keeps its last known state */ }
 }
 async function refreshAll() {
   try {
-    await Promise.all([refreshOffice(), refreshSummary()]);
+    await Promise.all([refreshOffice(), refreshSummary(), refreshRequests()]);
     S.conn = S.realtime ? 'live' : 'polling';
   } catch (e) {
     console.warn('office data unavailable', e);
@@ -237,6 +297,10 @@ function boot() {
   if (m) m.content = cfg ? cfg.name : 'Expire Offices';
 
   const dlg = $('all');
+  $('askbtns').addEventListener('click', onDecision);
+  $('allgrid').addEventListener('click', onDecision);
+  $('unlockform').addEventListener('submit', onUnlock);
+  $('unlockcancel').addEventListener('click', () => $('unlock').close());
   $('allbtn').addEventListener('click', () => { renderAll(); dlg.showModal(); });
   $('allclose').addEventListener('click', () => dlg.close());
   dlg.addEventListener('click', (e) => { if (e.target === dlg && cfg) dlg.close(); });

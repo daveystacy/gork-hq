@@ -69,6 +69,9 @@ async function openOffice(ctx, office, world) {
     else if (table === 'office_tasks') json = world.tasks[o] || [];
     else if (table === 'office_log') json = world.log[o] || [];
     else if (table === 'office_summary') json = summary(world);
+    else if (table === 'office_requests') json = world.requests || [];
+    else if (table === 'office_owner_ok') json = r.request().postDataJSON().p_pass === 'right-pass';
+    else if (table === 'office_decide') { const b = r.request().postDataJSON(); if (b.p_pass !== 'right-pass') return r.fulfill({ status: 401, json: {}, headers: { 'access-control-allow-origin': '*' } }); world.decided = b; world.requests = []; json = b.p_decision; }
     else if (table === 'ebt_bg_state') json = [{ running: true, last_tick: iso(0) }];
     r.fulfill({ json, headers: { 'access-control-allow-origin': '*' } });
   });
@@ -99,6 +102,34 @@ for (const o of OFFICES) {
     if (shots) await page.screenshot({ path: path.join(shots, `${o}-${label}.png`) });
     await page.close();
   }
+}
+
+// 1b. approve buttons: visitors can't decide, the owner can after one unlock
+{
+  const world = blankWorld();
+  world.requests = [{ id: 7, office: 'gamey', agent: 'gamey', question: 'Merge PR 93 into main?', approve_label: 'Approve', decline_label: 'Decline', status: 'pending', created_at: iso(1) }];
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const { page, errors } = await openOffice(ctx, 'gamey', world);
+  await page.waitForSelector('#ask b', { timeout: 45000 });
+  check((await page.locator('#ask b').textContent()).includes('Merge PR 93'), 'the question shows in the office');
+  check((await page.locator('#askbtns [data-req]').count()) === 0, 'a visitor sees no Approve or Decline');
+  await page.click('#askbtns [data-owner]');
+  await page.fill('#pass', 'wrong'); await page.click('#unlockform button[type=submit]');
+  await page.waitForSelector('#passerr:not([hidden])');
+  check((await page.locator('#askbtns [data-req]').count()) === 0, 'a wrong passcode unlocks nothing');
+  await page.fill('#pass', 'right-pass'); await page.click('#unlockform button[type=submit]');
+  await page.waitForSelector('#askbtns [data-do=approved]');
+  check(await page.evaluate(() => { const a = document.querySelector('#askbtns [data-do=approved]').getBoundingClientRect(), c = document.querySelector('#chat').getBoundingClientRect(); return a.right <= c.left && Math.abs(a.top - c.top) < 4; }), 'Approve sits next to Open chat');
+  if (shots) await page.screenshot({ path: path.join(shots, 'gamey-approve.png') });
+  await page.click('#askbtns [data-do=approved]');
+  await page.waitForFunction(() => document.querySelector('#ask').hidden, null, { timeout: 15000 });
+  check(world.decided?.p_id === 7 && world.decided?.p_decision === 'approved', 'clicking Approve records approved for that request');
+  world.requests = [{ ...{ id: 8, office: 'gamey', agent: 'gamey', question: 'Second?', approve_label: 'Yes', decline_label: 'No', status: 'pending', created_at: iso(0) } }];
+  await page.reload();
+  await page.waitForSelector('#askbtns [data-do=declined]', { timeout: 45000 });
+  check((await page.locator('#askbtns [data-do=declined]').textContent()) === 'No', 'unlock lasts after a reload, with custom labels');
+  check(errors.length === 0, `approve flow: no page errors ${errors.slice(0, 2).join(' | ')}`);
+  await page.close(); await ctx.close();
 }
 
 // 2. reports appear without a reload, and survive one

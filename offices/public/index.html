@@ -60,6 +60,24 @@ h1 span:first-child{color:var(--accent)}
 .btn.pri:hover{filter:brightness(1.08)}
 .btn:active{transform:translateY(1px)}
 #nochat{color:var(--faint);font-size:12px}
+#askbtns{display:contents}
+.btn.ok{background:#22c55e;border-color:#22c55e;color:#06140b}
+.btn.no{border-color:#7f3a3a;color:#ffc9c9}
+.btn.owner{border-color:var(--warn);color:var(--warn)}
+.btn:disabled{opacity:.5;cursor:default}
+#ask{flex:1 1 100%;display:flex;flex-direction:column;gap:3px;padding:9px 12px;border:1px solid rgba(245,158,11,.45);border-radius:10px;background:rgba(245,158,11,.1)}
+#ask[hidden]{display:none}
+#ask b{font-size:13px;font-weight:600;overflow-wrap:anywhere}
+#ask small{color:var(--faint);font-size:11px}
+.card-q{margin:0;padding:8px 10px;border-radius:8px;background:rgba(245,158,11,.1);color:#ffd9a0;font-size:12px;overflow-wrap:anywhere}
+#unlock{background:#14141a;color:var(--txt);border:1px solid #33333d;border-radius:12px;padding:18px;width:min(340px,calc(100vw - 32px))}
+#unlock::backdrop{background:rgba(0,0,0,.6)}
+#unlock h2{margin:0 0 6px;font-size:15px}
+#unlock p{margin:0 0 10px;color:var(--faint);font-size:12px}
+#unlock label{display:block;font-size:12px;margin-bottom:4px}
+#pass{width:100%;box-sizing:border-box;height:40px;padding:0 10px;border-radius:8px;border:1px solid #33333d;background:#0b0b0f;color:var(--txt);font-size:16px}
+#passerr{color:#ffb4b4;margin:8px 0 0}
+#unlock .row{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
 .conn{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--faint);white-space:nowrap}
 .conn:before{content:'';width:7px;height:7px;border-radius:50%;background:#3b3b45}
 .conn.live{color:var(--dim)}.conn.live:before{background:var(--ok);box-shadow:0 0 6px var(--ok)}
@@ -188,9 +206,11 @@ dialog#all::backdrop{background:rgba(3,3,6,.72)}
       <div id="acts">
         <span id="conn" class="conn">connecting</span>
         <span id="nochat">chat not linked yet</span>
+        <span id="askbtns"></span>
         <a id="chat" class="btn pri" target="_blank" rel="noopener" hidden>Open chat</a>
         <a id="site" class="btn" target="_blank" rel="noopener"></a>
       </div>
+      <div id="ask" hidden></div>
     </div>
     <div id="view">
       <div id="ov"></div>
@@ -217,6 +237,16 @@ dialog#all::backdrop{background:rgba(3,3,6,.72)}
   <div id="allgrid"></div>
 </dialog>
 
-<script type="module" src="assets/main-UO67NYVL.js"></script>
+<script type="module" src="assets/main-UAAOCCHI.js"></script>
+<dialog id="unlock">
+  <form id="unlockform">
+    <h2>Unlock owner buttons</h2>
+    <p>Only needed once on this device.</p>
+    <label for="pass">Owner passcode</label>
+    <input id="pass" type="password" autocomplete="current-password">
+    <p id="passerr" role="alert" hidden></p>
+    <div class="row"><button class="btn" type="button" id="unlockcancel">Cancel</button><button class="btn ok" type="submit">Unlock</button></div>
+  </form>
+</dialog>
 </body>
 </html>

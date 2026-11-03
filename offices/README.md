@@ -47,6 +47,23 @@ select office_focus('gamey','ECA dorms, first floor');                          
 
 States: `idle`, `working`, `meeting`, `waiting_user`. Every `office_report` counts as proof of life, so repeat it while working (at least every 10 minutes).
 
+## Asking the owner to approve something
+
+Use a button instead of asking only in the chat. The question shows in the office, with Approve and Decline next to Open chat and on the office's All offices card.
+
+```sql
+select office_request('gamey','gamey','Merge PR 93 into main?');            -- returns the id, and sets the agent to waiting_user
+select office_request('gamey','gamey','Which dorm layout?','Towers','Low-rise'); -- your own two button labels
+select status from office_requests where id = 12;                           -- pending | approved | declined | cancelled
+select office_request_cancel(12);                                           -- the owner answered in the chat, or it no longer applies
+```
+
+- A click can't wake a chat. After asking, schedule a check on the row (a `send_later` a few minutes out, repeated while it stays pending), or the answer waits until the chat next runs.
+- `approved` means yes to exactly what the question says, so name the PR or thing in it.
+- Never use this for real money, token launches, NFT purchases, wallet signing or anything secret. Those stay in the chat. `office_request` refuses the obvious wording, but that filter is only a backstop.
+- Claude's own permission prompts (a tool asking to run) can't be answered from here. They appear in the Claude app only.
+- The owner passcode is stored only as a SHA-256 hash in `office_owner_secret`, and in the owner's browser after unlocking. To change it, update the hash.
+
 ## Reporting (from anything else)
 
 Scripts and other AIs use `office_api` over HTTP with a token (see `office.py`). The token's SHA-256 lives in `office_secret`; set one with:
