@@ -17,7 +17,7 @@ The trading bot's office, gork.expire.org, is the page at the root of this repo 
 ## How it works
 
 - `public/` is what Vercel serves (project `expire-offices`, root directory `offices/public`, no build step on Vercel). The address decides which office the page shows. `?office=gamey` does the same on a preview URL; no office in the address opens the all-offices view.
-- `src/` is the source: `offices.js` (the list), `data.js` (reads and the honest-state rules), `scene.js` (the room and the Expirites), `themes.js` (each office's set piece), `main.js` (the panels).
+- `src/` is the source: `offices.js` (the list), `data.js` (reads and the honest-state rules), `scene.js` (the room), `bots.js` (the five agents, built from the owner's reference photos), `themes.js` (each office's set piece), `main.js` (the panels).
 - State lives in Supabase project `expire`, tables `offices`, `office_agents`, `office_tasks`, `office_log` (schema in `sql/`). Anyone can read; the public API can't write.
 - Changes appear through Supabase Realtime, with polling as the fallback, and the page says which one it is on.
 
@@ -66,3 +66,7 @@ node test/run.mjs shots   # real browser against fixture data; screenshots go in
 ```
 
 Pushes to `main` that touch `offices/public` deploy all seven offices at once. Status commits to gork's `status.json` don't.
+
+arty and betty.expire.org are attached to the older projects `xplayer-arty-office` and `xplayer-betty-office`, which only hold a `vercel.json` rewriting everything to gamey.expire.org. The page reads the address, so they show their own office. If those two domains get moved onto `expire-offices`, the rewrites can go.
+
+Each office's chat is a scheduled task with no schedule, named after its domain. Firing it again opens a fresh chat with the same brief; run `office_chat_checkin('<office>', '<new chat link>')` to point the office's Open chat button at it.
