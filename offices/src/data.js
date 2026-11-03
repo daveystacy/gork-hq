@@ -19,6 +19,16 @@ export async function loadOffice(id) {
   return { agents, tasks, log };
 }
 
+export const loadRequests = () => rest('office_requests?status=eq.pending&select=*&order=created_at');
+
+async function rpc(fn, args) {
+  const r = await fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: PK, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
+  if (!r.ok) throw new Error(r.status === 401 || r.status === 403 ? 'unauthorized' : `${fn}: ${r.status}`);
+  return r.json();
+}
+export const ownerOk = (pass) => rpc('office_owner_ok', { p_pass: pass });
+export const decide = (pass, reqId, decision) => rpc('office_decide', { p_pass: pass, p_id: reqId, p_decision: decision });
+
 export const loadSummary = () => rest('office_summary?select=*');
 
 export async function loadGork() {
@@ -36,6 +46,7 @@ export async function subscribe(office, onChange, onStatus) {
     const ch = sb.channel(`offices-${office || 'all'}`);
     const on = (table, filter) => ch.on('postgres_changes', { event: '*', schema: 'public', table, ...(filter ? { filter } : {}) }, (p) => onChange(table, p));
     on('offices');
+    on('office_requests');
     on('office_agents');
     on('office_tasks', office ? `office=eq.${office}` : undefined);
     on('office_log', office ? `office=eq.${office}` : undefined);
