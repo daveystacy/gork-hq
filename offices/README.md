@@ -11,6 +11,7 @@ One live 3D office per project, all from this folder, all reachable from one tab
 | Shop Office | story.expire.org | Story |
 | Mint Office | minty.expire.org | Minty |
 | Lobby Office | lobby.expire.org | Lobby |
+| Social Office | social.expire.org | Social |
 
 The trading bot's office, gork.expire.org, is the page at the root of this repo (GitHub Pages). It shares the switcher.
 
@@ -65,7 +66,7 @@ node build.mjs            # writes public/ (commit it: Vercel serves it as is)
 node test/run.mjs shots   # real browser against fixture data; screenshots go in shots/
 ```
 
-Pushes to `main` that touch `offices/public` deploy all seven offices at once. Status commits to gork's `status.json` don't.
+Pushes to the `offices` branch (the production branch of `expire-offices`) that touch `offices/public` deploy all eight offices at once. Status commits to gork's `status.json` don't.
 
 arty and betty.expire.org are attached to the older projects `xplayer-arty-office` and `xplayer-betty-office`, which only hold a `vercel.json` rewriting everything to gamey.expire.org. The page reads the address, so they show their own office. If those two domains get moved onto `expire-offices`, the rewrites can go.
 

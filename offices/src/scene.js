@@ -253,6 +253,7 @@ export function createOffice(view, overlay, id, cfg) {
 
   function setAgents(list) {
     agents = list;
+    theme.agents?.(list);
     for (const a of list) {
       if (!bots[a.id]) bots[a.id] = makeBot(a);
       bots[a.id].a = a;

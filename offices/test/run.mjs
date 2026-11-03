@@ -26,8 +26,8 @@ const srv = http.createServer((q, s) => {
 await new Promise((r) => srv.once('listening', r));
 const BASE = `http://localhost:${srv.address().port}/`;
 
-const OFFICES = ['gamey', 'tradey', 'arty', 'betty', 'story', 'minty', 'lobby'];
-const NAMES = { gamey: 'Game Office', tradey: 'Trade Office', arty: 'NFT Office', betty: 'Casino Office', story: 'Shop Office', minty: 'Mint Office', lobby: 'Lobby Office' };
+const OFFICES = ['gamey', 'tradey', 'arty', 'betty', 'story', 'minty', 'lobby', 'social'];
+const NAMES = { gamey: 'Game Office', tradey: 'Trade Office', arty: 'NFT Office', betty: 'Casino Office', story: 'Shop Office', minty: 'Mint Office', lobby: 'Lobby Office', social: 'Social Office' };
 const iso = (minsAgo = 0) => new Date(Date.now() - minsAgo * 60e3).toISOString();
 const team = (o) => [
   ['a0', 'World', 'campus, maps and levels', '#ff9a1f'], ['a1', 'Characters', 'models and rigs', '#3b82ff'], [o, o[0].toUpperCase() + o.slice(1), 'office lead', '#dfe6ff'],
@@ -157,8 +157,8 @@ for (const o of OFFICES) {
   await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 5, null, { timeout: 45000 });
   await page.waitForFunction(() => document.querySelector('#sw .dot.waiting'), null, { timeout: 30000 });
   await page.click('#allbtn');
-  await page.waitForFunction(() => document.querySelectorAll('#allgrid .card').length === 8);
-  check(true, 'all offices shows 7 offices + GORK');
+  await page.waitForFunction(() => document.querySelectorAll('#allgrid .card').length === 9);
+  check(true, 'all offices shows 8 offices + GORK');
   check((await page.locator('#allhead').textContent()).includes('Trade'), 'all offices names who is waiting on you');
   if (shots) await page.screenshot({ path: path.join(shots, 'all-offices.png') });
   await page.keyboard.press('Escape');
@@ -169,7 +169,7 @@ for (const o of OFFICES) {
   await p2.route(/supabase\.co\/rest\/v1\/(.*)/, (r) => r.fulfill({ json: /office_summary/.test(r.request().url()) ? summary(world) : [], headers: { 'access-control-allow-origin': '*' } }));
   await p2.route(/gork\.expire\.org|realtime/, (r) => r.abort());
   await p2.goto(BASE);
-  await p2.waitForFunction(() => document.getElementById('all').open && document.querySelectorAll('#allgrid .card').length === 8);
+  await p2.waitForFunction(() => document.getElementById('all').open && document.querySelectorAll('#allgrid .card').length === 9);
   check(true, 'no office in the address lands on the overview');
   await p2.close();
 }

@@ -1,4 +1,4 @@
-// The seven offices. One page serves them all; the address decides which office you are in.
+// The eight offices. One page serves them all; the address decides which office you are in.
 // Teams, tasks and activity live in Supabase (see sql/). This file only holds what never changes.
 
 export const SB = 'https://szpczmrvthxkdaxqzlqk.supabase.co';
@@ -40,9 +40,14 @@ export const OFFICES = {
     blurb: 'The 3D lobby: Expire Bank, portals and poker tables',
     site: ['Open lobby', 'https://expire.org/lobby.html'],
   },
+  social: {
+    label: 'Social', name: 'Social Office', domain: 'social.expire.org', accent: '#f472b6',
+    blurb: 'EXPIRE Social: the feed, live streams, Spaces and check marks',
+    site: ['Open Social', 'https://expire.org/index.html#app=social'],
+  },
 };
 
-export const ORDER = ['gamey', 'tradey', 'arty', 'betty', 'story', 'minty', 'lobby'];
+export const ORDER = ['gamey', 'tradey', 'arty', 'betty', 'story', 'minty', 'lobby', 'social'];
 
 // the trading bot's office already exists on its own page; it sits in the switcher so one tab reaches everything
 export const GORK = { label: 'GORK', name: 'Expire Trading Bot', domain: 'gork.expire.org', terminal: 'terminal.expire.org' };

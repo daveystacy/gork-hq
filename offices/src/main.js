@@ -169,7 +169,7 @@ function renderAll() {
   const byId = Object.fromEntries(S.summary.map((r) => [r.id, r]));
   const now = Date.now();
   const need = ORDER.filter((k) => officeState(byId[k], now) === 'waiting');
-  $('allhead').textContent = need.length ? `${need.length} of 7 waiting on you: ${need.map((k) => OFFICES[k].label).join(', ')}` : 'Nothing is waiting on you';
+  $('allhead').textContent = need.length ? `${need.length} of ${ORDER.length} waiting on you: ${need.map((k) => OFFICES[k].label).join(', ')}` : 'Nothing is waiting on you';
   const cards = ORDER.map((k) => {
     const o = OFFICES[k], r = byId[k], st = officeState(r, now), chat = safeUrl(r?.chat_url);
     const counts = r ? [[r.tasks_active, 'active'], [r.tasks_queued, 'queued'], [r.tasks_blocked, 'blocked'], [r.tasks_done, 'done']] : [];

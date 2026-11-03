@@ -361,6 +361,180 @@ function lobby(k) {
   };
 }
 
+// ---------- SOCIAL: a creator studio: a freestanding wall of feed columns, a camera stage, a Spaces table, the four check marks
+
+// one tall column of the feed, the way a deck shows it: a header bar and post rows as grey shapes.
+// No names, faces, words or numbers: it is the shape of a feed, not a fake one.
+function columnArt(seed) {
+  return (g, W, H) => {
+    let s = seed;
+    const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+    g.fillStyle = '#060608'; g.fillRect(0, 0, W, H);
+    let y = 10;
+    while (y < H) {
+      const lines = 1 + Math.floor(rnd() * 3), media = rnd() > .62;
+      g.fillStyle = '#2c2c35'; g.beginPath(); g.arc(28, y + 20, 13, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#4a4a55'; g.fillRect(50, y + 12, 50 + rnd() * 60, 7);
+      g.fillStyle = '#30303a'; g.fillRect(W - 46, y + 12, 26, 7);
+      g.fillStyle = '#383842';
+      for (let i = 0; i < lines; i++) g.fillRect(50, y + 30 + i * 14, (W - 70) * (i === lines - 1 ? .55 + rnd() * .4 : 1), 7);
+      y += 36 + lines * 14;
+      if (media) { g.fillStyle = '#1c1c23'; g.fillRect(50, y, W - 70, 70); y += 80; }
+      g.fillStyle = '#2a2a32'; for (let i = 0; i < 4; i++) g.fillRect(50 + i * ((W - 70) / 4), y + 2, 14, 6);
+      y += 18; g.fillStyle = '#1e1e25'; g.fillRect(0, y, W, 1); y += 8;
+    }
+  };
+}
+
+// the check marks as solid badges: gold (an NFT held), blue (email verified), diamond (an NFT worth over $10k), whale (over $50k held)
+function badgeArt(kind) {
+  return (g, W, H) => {
+    g.clearRect(0, 0, W, H);
+    const cx = W / 2, cy = H / 2, R = W * .42;
+    const fills = { gold: ['#f8e08e', '#c9971f'], blue: ['#7cc4ff', '#1d7bea'], diamond: ['#e8fbff', '#7fd8f0'], whale: ['#5fa8c9', '#173f63'] };
+    const [hi, lo] = fills[kind];
+    const grd = g.createLinearGradient(0, 0, 0, H); grd.addColorStop(0, hi); grd.addColorStop(1, lo); g.fillStyle = grd;
+    g.beginPath();
+    if (kind === 'diamond') {
+      g.moveTo(cx, cy - R); g.lineTo(cx + R * .9, cy - R * .25); g.lineTo(cx, cy + R); g.lineTo(cx - R * .9, cy - R * .25); g.closePath();
+    } else {
+      const n = 12; // a scalloped seal
+      for (let i = 0; i <= n * 2; i++) { const a = i / (n * 2) * Math.PI * 2 - Math.PI / 2, r = i % 2 ? R * .86 : R; g[i ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+    }
+    g.fill();
+    if (kind === 'diamond') { g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 3; g.beginPath(); g.moveTo(cx - R * .9, cy - R * .25); g.lineTo(cx + R * .9, cy - R * .25); g.moveTo(cx - R * .35, cy - R * .25); g.lineTo(cx, cy + R); g.lineTo(cx + R * .35, cy - R * .25); g.stroke(); }
+    if (kind === 'whale') { // a tail above the check
+      g.fillStyle = '#fff'; g.beginPath(); g.moveTo(cx, cy - R * .12); g.quadraticCurveTo(cx - R * .18, cy - R * .42, cx - R * .5, cy - R * .5); g.quadraticCurveTo(cx - R * .2, cy - R * .22, cx, cy - R * .02);
+      g.quadraticCurveTo(cx + R * .2, cy - R * .22, cx + R * .5, cy - R * .5); g.quadraticCurveTo(cx + R * .18, cy - R * .42, cx, cy - R * .12); g.fill();
+    }
+    g.strokeStyle = kind === 'diamond' ? '#0b3a4a' : '#fff'; g.lineWidth = W * .07; g.lineCap = 'round'; g.lineJoin = 'round';
+    const dy = kind === 'whale' ? R * .2 : kind === 'diamond' ? -R * .02 : 0, sc = kind === 'diamond' ? .32 : .4;
+    g.beginPath(); g.moveTo(cx - R * sc, cy + dy); g.lineTo(cx - R * sc * .2, cy + R * sc * .75 + dy); g.lineTo(cx + R * sc * 1.05, cy - R * sc * .6 + dy); g.stroke();
+  };
+}
+
+function social(k) {
+  const THREE = k.THREE;
+  const black = k.M('#0b0b0e', { roughness: .45, metalness: .3 });
+  const brass = k.M('#b8955a', { metalness: 1, roughness: .32 });
+  const marble = k.M('#e9e5de', { roughness: .18, metalness: .05 });
+  const blackMarble = k.M('#121215', { roughness: .16, metalness: .2 });
+
+  // the column wall: a freestanding black frame on two feet, five tall screens side by side
+  const wx = 3.6, wz = 1.7, cols = 5, cw = .92, ch = 2.05, gap = .1;
+  const ww = cols * cw + (cols - 1) * gap + .22;
+  k.box(ww, ch + .22, .12, black, wx, 1.38, wz);
+  k.box(ww + .04, .03, .14, brass, wx, 1.38 + ch / 2 + .12, wz);
+  k.box(ww + .04, .03, .14, brass, wx, 1.38 - ch / 2 - .12, wz);
+  for (const s of [-1, 1]) { k.box(.08, .26, .5, black, wx + s * (ww / 2 - .3), .13, wz); }
+  const feeds = [];
+  for (let i = 0; i < cols; i++) {
+    const x = wx - (cols - 1) * (cw + gap) / 2 + i * (cw + gap);
+    const map = k.tex(columnArt(i * 53 + 7), 256, 640);
+    map.wrapS = map.wrapT = THREE.RepeatWrapping; map.repeat.set(1, .9);
+    const scr = new THREE.Mesh(new THREE.PlaneGeometry(cw, ch - .16), new THREE.MeshBasicMaterial({ map, toneMapped: false, color: '#d8d8de' }));
+    scr.position.set(x, 1.38 - .08, wz + .065); k.scene.add(scr);
+    const head = new THREE.Mesh(new THREE.PlaneGeometry(cw, .14), new THREE.MeshBasicMaterial({ color: '#15151b', toneMapped: false }));
+    head.position.set(x, 1.38 + ch / 2 - .07, wz + .066); k.scene.add(head);
+    const tick = new THREE.Mesh(new THREE.PlaneGeometry(.18, .025), new THREE.MeshBasicMaterial({ color: k.accent, toneMapped: false }));
+    tick.position.set(x - cw / 2 + .16, 1.38 + ch / 2 - .07, wz + .067); k.scene.add(tick);
+    feeds.push({ map, speed: .006 + ((i * 7) % 5) * .0015 });
+  }
+  // the official e-globe immediately left of the lowercase expire wordmark, on a black fascia above the wall
+  k.box(2.3, .52, .08, black, wx, 2.72, wz);
+  const globe = new THREE.Mesh(new THREE.CircleGeometry(.2, 48), new THREE.MeshBasicMaterial({ transparent: true, toneMapped: false }));
+  globe.position.set(wx - .62, 2.72, wz + .045); k.scene.add(globe);
+  k.eglobeTex((t) => { globe.material.map = t; globe.material.needsUpdate = true; });
+  const word = new THREE.Mesh(new THREE.PlaneGeometry(1.15, .36), new THREE.MeshBasicMaterial({ transparent: true, toneMapped: false, color: '#f4f4f6' }));
+  word.position.set(wx + .2, 2.72, wz + .045); k.scene.add(word);
+  k.loadTex('brand/emb-expire.webp', (t) => { word.material.map = t; word.material.needsUpdate = true; });
+  // the ON AIR lamp on the wall's top right: lit only while an agent here is really working
+  k.box(.62, .2, .06, black, wx + ww / 2 - .4, 2.72, wz);
+  const lampOff = '#2a1214';
+  const lamp = new THREE.Mesh(new THREE.PlaneGeometry(.56, .15), new THREE.MeshBasicMaterial({ toneMapped: false, transparent: true }));
+  const lampTex = (on) => k.tex((g, W, H) => {
+    g.fillStyle = on ? '#e11d2e' : lampOff; g.fillRect(0, 0, W, H);
+    g.font = `700 ${Math.round(H * .62)}px "Helvetica Neue",Helvetica,Arial,sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = on ? '#fff' : '#4a2a2c'; g.fillText('ON AIR', W / 2, H / 2 + 2);
+  }, 256, 68);
+  const lampMaps = [lampTex(false), lampTex(true)];
+  lamp.material.map = lampMaps[0];
+  lamp.position.set(wx + ww / 2 - .4, 2.72, wz + .035); k.scene.add(lamp);
+  const lampLight = new THREE.PointLight('#ff2a3a', 0, 2.2); lampLight.position.set(wx + ww / 2 - .4, 2.7, wz + .5); k.scene.add(lampLight);
+  const wash = new THREE.PointLight('#f2e6ff', 2.4, 6); wash.position.set(wx, 2.2, wz + 2.4); k.scene.add(wash);
+
+  // the Spaces table: white marble on a brass column, four microphones on short booms, four stools
+  const cx = 3.9, cz = 4.25;
+  k.cyl(.95, .95, .07, 64, marble, cx, .78, cz);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(.95, .016, 8, 96), brass); rim.rotation.x = Math.PI / 2; rim.position.set(cx, .78, cz); k.scene.add(rim);
+  k.cyl(.07, .07, .72, 16, brass, cx, .39, cz);
+  k.cyl(.42, .46, .04, 32, brass, cx, .02, cz);
+  const mic = k.M('#1b1b1f', { metalness: .6, roughness: .35 }), grille = k.M('#4a4a52', { metalness: .9, roughness: .45 });
+  const leather = k.M('#1a1517', { roughness: .62 });
+  for (let i = 0; i < 4; i++) {
+    const a = Math.PI / 4 + i * Math.PI / 2, ca = Math.cos(a), sa = Math.sin(a);
+    const mx = cx + ca * .62, mz = cz + sa * .62;
+    k.cyl(.05, .06, .02, 16, mic, mx, .825, mz);
+    k.cyl(.008, .008, .26, 6, brass, mx, .95, mz);
+    const head = k.cyl(.032, .032, .13, 16, grille, mx - ca * .05, 1.1, mz - sa * .05);
+    head.rotation.z = ca * .9; head.rotation.x = -sa * .9;
+    const sx = cx + ca * 1.35, sz = cz + sa * 1.35;
+    k.cyl(.24, .22, .09, 24, leather, sx, .56, sz);
+    k.cyl(.02, .02, .5, 8, brass, sx, .27, sz);
+    k.cyl(.18, .2, .02, 20, brass, sx, .01, sz);
+  }
+
+  // the camera stage, front left: a low round platform, a ring light and a camera on a tripod facing it
+  const px = .55, pz = 4.9;
+  k.cyl(.7, .74, .1, 48, blackMarble, px, .05, pz);
+  const sedge = new THREE.Mesh(new THREE.TorusGeometry(.72, .012, 6, 80), brass); sedge.rotation.x = Math.PI / 2; sedge.position.set(px, .1, pz); k.scene.add(sedge);
+  const metal = k.M('#2b2b30', { metalness: .8, roughness: .3 });
+  const rx = px + .95, rz = pz + .9;
+  k.cyl(.015, .015, 1.7, 8, metal, rx, .85, rz);
+  for (let i = 0; i < 3; i++) { const a = i * 2.1; const leg = k.cyl(.01, .01, .5, 6, metal, rx + Math.cos(a) * .17, .2, rz + Math.sin(a) * .17); leg.rotation.z = Math.cos(a) * .7; leg.rotation.x = -Math.sin(a) * .7; }
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.32, .03, 12, 64), new THREE.MeshBasicMaterial({ color: '#fff7fb', toneMapped: false }));
+  ring.position.set(rx, 1.72, rz); ring.lookAt(px, 1.4, pz); k.scene.add(ring);
+  const key = new THREE.SpotLight('#fff1f6', 6, 5, .7, .6); key.position.set(rx, 1.72, rz); key.target.position.set(px, .8, pz); k.scene.add(key, key.target);
+  const tx = px + .25, tz = pz + 1.35;
+  for (let i = 0; i < 3; i++) { const a = i * 2.1 + .5; const leg = k.cyl(.012, .012, 1.2, 6, metal, tx + Math.cos(a) * .2, .55, tz + Math.sin(a) * .2); leg.rotation.z = Math.cos(a) * .32; leg.rotation.x = -Math.sin(a) * .32; }
+  const cam = k.box(.3, .2, .2, k.M('#121214', { roughness: .4, metalness: .5 }), tx, 1.16, tz);
+  const lens = k.cyl(.07, .08, .18, 24, k.M('#0a0a0c', { metalness: .7, roughness: .2 }), tx, 1.16, tz - .17);
+  lens.rotation.x = Math.PI / 2;
+  cam.lookAt(px, 1, pz); lens.lookAt(px, 1, pz); lens.rotateX(Math.PI / 2);
+
+  // the plinth, front right: black marble with a brass edge, the four check marks standing on it
+  const bx = 6.5, bz = 5.2;
+  k.box(.62, 1.05, .62, blackMarble, bx, .525, bz);
+  k.box(.66, .03, .66, brass, bx, 1.06, bz);
+  ['gold', 'blue', 'diamond', 'whale'].forEach((kind, i) => {
+    const a = i * Math.PI / 2 + Math.PI / 4, x = bx + Math.cos(a) * .16, z = bz + Math.sin(a) * .16;
+    const map = k.tex(badgeArt(kind), 256, 256);
+    const b = new THREE.Mesh(new THREE.CircleGeometry(.11, 40), new THREE.MeshBasicMaterial({ map, transparent: true, toneMapped: false, side: THREE.DoubleSide }));
+    b.position.set(x, 1.28 + (i % 2) * .05, z); k.scene.add(b);
+    k.cyl(.006, .006, .2, 6, brass, x, 1.17, z);
+    feeds.push({ badge: b, ph: i * 1.6 });
+  });
+  const plinthLight = new THREE.SpotLight('#fff4e0', 4, 3, .4, .5); plinthLight.position.set(bx, 2.6, bz + .3); plinthLight.target.position.set(bx, 1.2, bz); k.scene.add(plinthLight, plinthLight.target);
+
+  let onAir = false;
+  return {
+    blocked: [[wx - ww / 2, wz - .35, wx + ww / 2, wz + .35], [cx - 1.65, cz - 1.65, cx + 1.65, cz + 1.65], [px - .8, pz - .8, px + .8, pz + .8], [rx - .25, rz - .25, rx + .25, rz + .25], [tx - .3, tz - .3, tx + .3, tz + .3], [bx - .4, bz - .4, bx + .4, bz + .4]],
+    spots: [[.4, 2.9], [6.6, 3], [6.4, 6.3], [3.9, 6.35]],
+    // the lamp follows the team: on only while somebody here is really working (not gone quiet)
+    agents: (list) => {
+      const on = list.some((a) => a.view === 'working');
+      if (on === onAir) return;
+      onAir = on; lamp.material.map = lampMaps[on ? 1 : 0]; lamp.material.needsUpdate = true; lampLight.intensity = on ? 2.5 : 0;
+    },
+    tick: (t) => {
+      for (const f of feeds) {
+        if (f.map) f.map.offset.y = (t * f.speed) % 1; // the columns scroll slowly, the way a feed does when nobody is touching it
+        else f.badge.rotation.y = Math.sin(t * .5 + f.ph) * .5;
+      }
+    },
+  };
+}
+
 // how the shared room is dressed for each office
 export const ROOM = {
   // sky = top, middle, horizon, buildings, lit windows
@@ -371,9 +545,10 @@ export const ROOM = {
   story: { desks: '#1e1e22', floorRug: '#26262b', chair: '#1c1c20', sky: ['#a9c3dd', '#cfdbe8', '#ece9e2', '#7d8896', '#ffffff'] },
   minty: { desks: '#0d2e24', floorRug: '#0b241c', chair: '#14231e', stars: true, sky: ['#04201f', '#0d5a52', '#4cbf9d', '#041512', '#b8ffe6'] },
   lobby: { desks: '#33190a', floorRug: '#23120a', chair: '#28190f', sky: ['#2a1238', '#a8412a', '#f7a049', '#1a0d0f', '#ffd2a1'] },
+  social: { desks: '#1b1a1f', floorRug: '#151418', chair: '#1d1b20', stars: true, sky: ['#0b0912', '#2a1a33', '#8a4f72', '#0a080c', '#ffd9ea'] },
 };
 
-const THEMES = { gamey, tradey, arty, betty, story, minty, lobby };
+const THEMES = { gamey, tradey, arty, betty, story, minty, lobby, social };
 
 export function buildTheme(id, kit) {
   const fn = THEMES[id];
