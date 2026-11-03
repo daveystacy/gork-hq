@@ -6,13 +6,13 @@
 //   box     glossy cobalt box head with a black lid and a green bulb
 //   chrome  the faceless chrome Expireman, e-globe on the chest, Explore / Inspire on the back (the office lead)
 // All marks are the official artwork from the site's brand and print folders, never a redraw.
-// Geometry and materials are shared between bots, the hoodie and legs are merged, so the team stays cheap on a phone. The office uses two blue box heads, two glitch and two white smoke; liquid and chrome stay here but aren't seated.
+// Geometry and materials are shared between bots, the hoodie and legs are merged, so the team stays cheap on a phone. The office uses two blue box heads, two glitch and a white smoke lead; liquid and chrome stay here but aren't seated.
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
-export const KINDS = ['box', 'glitch', 'smoke', 'box', 'glitch', 'smoke']; // by seat: two blue heads, two glitch, two white smoke
+export const KINDS = ['box', 'glitch', 'smoke', 'box', 'glitch']; // by seat: two blue heads, two glitch, and the white smoke lead
 
 const R = .37;            // head radius
 const HEAD_Y = 2.8;

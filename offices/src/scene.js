@@ -1,4 +1,4 @@
-// The live 3D office. Six robots, a desk each around the room and a long table in the middle;
+// The live 3D office. Five robots, a desk each around the room and a long table in the middle;
 // what each bot does comes only from its real state (see agentView in data.js).
 
 import * as THREE from 'three';
@@ -14,12 +14,12 @@ import { createBotFactory, KINDS } from './bots.js';
 import { ago } from './data.js';
 
 const W = 20, D = 14;
-// six desks, one per agent: the four corners and the middle of each side. [x, z, the way the agent faces]
-const DESKS = [[-8, -5.2, Math.PI], [8, -5.2, Math.PI], [-8.6, -1.2, -Math.PI / 2], [8.6, -1.2, Math.PI / 2], [-8, 5.2, 0], [8, 5.2, 0]];
+// five desks, one per agent: the four corners and the middle of the side wall, under the screen. [x, z, the way the agent faces]
+const DESKS = [[-8, -5.2, Math.PI], [8, -5.2, Math.PI], [-8.6, -1.2, -Math.PI / 2], [-8, 5.2, 0], [8, 5.2, 0]];
 const chairOf = ([x, z, r]) => [x + Math.sin(r) * -.95, z + Math.cos(r) * -.95];
 // the long table in the middle, and where each agent sits at it when not working
 const TABLE = { x: 0, z: -1, w: 10.4, d: 2.2, y: 1.2 };
-const SEATS = [[-3.4, -2.5, 0], [0, -2.5, 0], [3.4, -2.5, 0], [-3.4, .5, Math.PI], [0, .5, Math.PI], [3.4, .5, Math.PI]];
+const SEATS = [[-3.4, -2.5, 0], [0, -2.5, 0], [3.4, -2.5, 0], [-1.7, .5, Math.PI], [1.7, .5, Math.PI]];
 const ACTIVITIES = ['laptop', 'phone', 'ipad', 'writing', 'eating'];
 const MG = .3, CS = .25, X0 = -9.5, Z0 = -6.5;
 const GX = Math.round(19 / CS), GZ = Math.round(13 / CS);

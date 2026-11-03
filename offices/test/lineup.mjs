@@ -31,7 +31,7 @@ await page.route(/supabase\.co\/rest\/v1\/(.*)/, (r) => {
 });
 await page.route(/gork\.expire\.org|realtime/, (r) => r.abort());
 await page.goto(`${BASE}?office=gamey`);
-await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 6, null, { timeout: 60000 });
+await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 5, null, { timeout: 60000 });
 
 const stage = (rot, zoom, y, x0 = 0) => page.evaluate(({ rot, zoom, y, x0 }) => {
   const { debug } = window.__office;

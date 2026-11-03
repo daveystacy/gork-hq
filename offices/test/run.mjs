@@ -31,7 +31,7 @@ const NAMES = { gamey: 'Game Office', tradey: 'Trade Office', arty: 'NFT Office'
 const iso = (minsAgo = 0) => new Date(Date.now() - minsAgo * 60e3).toISOString();
 const team = (o) => [
   ['a0', 'World', 'campus, maps and levels', '#ff9a1f'], ['a1', 'Characters', 'models and rigs', '#3b82ff'], [o, o[0].toUpperCase() + o.slice(1), 'office lead', '#dfe6ff'],
-  ['a3', 'Gameplay', 'modes and controls', '#2dff7a'], ['a4', 'Playtest', 'browser tests', '#a24bff'], ['a5', 'Support', 'extra hands for the team', '#e8c66a'],
+  ['a3', 'Gameplay', 'modes and controls', '#2dff7a'], ['a4', 'Playtest', 'browser tests', '#a24bff'],
 ].map(([id, name, role, color], seat) => ({ office: o, id, name, role, color, seat, state: 'idle', task: '', progress: null, since: iso(60), heard_at: null }));
 
 function blankWorld() {
@@ -88,7 +88,7 @@ for (const o of OFFICES) {
   const world = blankWorld();
   for (const [ctx, label] of [[desktop, 'desktop'], [phone, 'phone']]) {
     const { page, errors } = await openOffice(ctx, o, world);
-    await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 6, null, { timeout: 45000 });
+    await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 5, null, { timeout: 45000 });
     await page.waitForTimeout(label === 'desktop' ? 2500 : 1500);
     const title = await page.title();
     check(title.includes(NAMES[o]), `${o} ${label}: title says ${NAMES[o]}`);
@@ -136,7 +136,7 @@ for (const o of OFFICES) {
 {
   const world = blankWorld();
   const { page, errors } = await openOffice(desktop, 'gamey', world);
-  await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 6, null, { timeout: 45000 });
+  await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 5, null, { timeout: 45000 });
   const a0 = world.agents.gamey[0];
   Object.assign(a0, { state: 'working', task: 'Blocking out the ECA dorms', progress: 35, heard_at: iso(0) });
   world.tasks.gamey.push({ id: 1, office: 'gamey', title: 'Block out the ECA dorms', owner: 'a0', status: 'in-progress', note: '', created_at: iso(1), started_at: iso(1), finished_at: null, updated_at: iso(0) });
@@ -185,7 +185,7 @@ for (const o of OFFICES) {
   Object.assign(world.agents.minty[1], { state: 'working', task: 'ExpireBings mint page', progress: 60, heard_at: iso(1) });
   world.tasks.minty.push({ id: 2, office: 'minty', title: 'ExpireBings mint page', owner: 'a1', status: 'in-progress', note: '', created_at: iso(10), started_at: iso(9), finished_at: null, updated_at: iso(1) });
   const { page } = await openOffice(desktop, 'gamey', world);
-  await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 6, null, { timeout: 45000 });
+  await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 5, null, { timeout: 45000 });
   await page.waitForFunction(() => document.querySelector('#sw .dot.waiting'), null, { timeout: 30000 });
   await page.click('#allbtn');
   await page.waitForFunction(() => document.querySelectorAll('#allgrid .card').length === 8);
