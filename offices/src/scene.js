@@ -14,9 +14,13 @@ import { createBotFactory, KINDS } from './bots.js';
 import { ago } from './data.js';
 
 const W = 20, D = 14;
-const DESKS = [[-7.5, -4], [-4.5, -4], [0, -4.6], [4.5, -4], [7.5, -4]];
-const MEET = [[-4, 4.6], [-1.9, 2.5], [-4, .4], [-6.1, 2.5], [-2.5, 4.1]];
-const BASE_SPOTS = [[-1.3, 4.5], [8.4, 2.6], [-8.5, 0], [-8, 4.8], [5, -1.6], [-1, -1.5], [8.2, 4.8], [-1.2, 6]];
+// a desk in each corner, and one on each side wall, so everyone can be seen from the door
+const DESKS = [[-8.3, -5.2], [8.3, -5.2], [-8.3, 3.9], [8.3, 3.9], [-8.3, -1], [8.3, -1]];
+// the long table down the middle: where the team sits when nobody has given them work
+const TABLE = { x: 0, z: -2.1, w: 9.6, d: 1.7 };
+const TABLE_SEATS = [[-3.2, 1], [0, 1], [3.2, 1], [-3.2, -1], [0, -1], [3.2, -1]].map(([x, side]) => ({ x, z: TABLE.z + side * (TABLE.d / 2 + .38), side }));
+const MEET = [[-5.6, -2.1], [5.6, -2.1], [-1.6, -.4], [1.6, -.4], [-1.6, -3.8]];
+const BASE_SPOTS = [[-1.3, 4.5], [-5.8, 1.2], [5.8, 1.2], [-1, .6], [1, 6.2], [-4, 6.2]];
 const MG = .3, CS = .25, X0 = -9.5, Z0 = -6.5;
 const GX = Math.round(19 / CS), GZ = Math.round(13 / CS);
 
@@ -57,8 +61,8 @@ export function createOffice(view, overlay, id, cfg) {
   new ResizeObserver(size).observe(view);
   size();
 
-  scene.add(new THREE.HemisphereLight('#aab6ff', '#2a2018', 1.05));
-  const sun = new THREE.DirectionalLight('#fff1dd', 2.2);
+  scene.add(new THREE.HemisphereLight('#d7dcff', '#5a4a38', 1.9));
+  const sun = new THREE.DirectionalLight('#fff1dd', 3);
   sun.position.set(-8, 16, 10); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
   Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14 });
   sun.shadow.bias = -.0005; scene.add(sun);
@@ -88,17 +92,21 @@ export function createOffice(view, overlay, id, cfg) {
   const eglobeTex = (cb) => { if (eglobe) cb(eglobe); else eglobeWaiting.push(cb); };
 
   // ---- room
-  const fc = document.createElement('canvas'); fc.width = fc.height = 256;
-  const fx = fc.getContext('2d');
-  for (let i = 0; i < 8; i++) {
-    fx.fillStyle = i % 2 ? '#7a5232' : '#6e4a2d'; fx.fillRect(0, i * 32, 256, 32);
-    fx.fillStyle = 'rgba(0,0,0,.15)'; fx.fillRect(0, i * 32, 256, 1); fx.fillRect((i * 73) % 256, i * 32, 1, 32);
-  }
-  const floorT = new THREE.CanvasTexture(fc);
-  floorT.wrapS = floorT.wrapT = THREE.RepeatWrapping; floorT.repeat.set(4, 3); floorT.colorSpace = THREE.SRGBColorSpace;
-  box(W, .3, D, M('#fff', { map: floorT, roughness: .28, metalness: .2, color: '#75757f' }), 0, -.15, 0);
-  box(W, 5, .3, M('#1a1b24'), 0, 2.5, -D / 2);
-  box(.3, 5, D, M('#16171f'), -W / 2, 2.5, 0);
+  // polished black stone with thin gold joints, dark panelled walls, and light hidden along their edges
+  const GOLD = M('#d9b15a', { metalness: 1, roughness: .22 }), GLOWG = new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffd28a').multiplyScalar(1.5), toneMapped: false });
+  const floorT = tex((g, w, h) => {
+    g.fillStyle = '#2b2b35'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 90; i++) { g.strokeStyle = `rgba(190,185,205,${.03 + (i % 5) * .012})`; g.lineWidth = .7 + (i % 3) * .5; const x = (i * 137) % w, y = (i * 71) % h; g.beginPath(); g.moveTo(x, y); g.bezierCurveTo(x + 60, y + 40, x + 30, y + 110, x + 130, y + 170); g.stroke(); }
+    g.strokeStyle = 'rgba(217,177,90,.75)'; g.lineWidth = 2; g.strokeRect(0, 0, w, h);
+  }, 512, 512);
+  floorT.wrapS = floorT.wrapT = THREE.RepeatWrapping; floorT.repeat.set(5, 3.5);
+  box(W, .3, D, M('#fff', { map: floorT, roughness: .1, metalness: .55, envMapIntensity: 1.4 }), 0, -.15, 0);
+  const wallM = M('#101118', { roughness: .32, metalness: .45 });
+  box(W, 5, .3, wallM, 0, 2.5, -D / 2);
+  box(.3, 5, D, wallM, -W / 2, 2.5, 0);
+  box(W, .05, .06, GLOWG, 0, 4.96, -D / 2 + .19); box(.06, .05, D, GLOWG, -W / 2 + .19, 4.96, 0);
+  box(W, .1, .05, GOLD, 0, .1, -D / 2 + .18); box(.05, .1, D, GOLD, -W / 2 + .18, .1, 0);
+  for (let z = -5.4; z < 6.5; z += 2.2) if (z < -4 || z > 2) box(.04, 4.6, .04, GOLD, -W / 2 + .17, 2.5, z);
   // the view out: one continuous skyline across the five windows, its light set per office
   if (room.sky) {
     const hash = (n) => { const v = Math.sin(n * 127.1) * 43758.5453; return v - Math.floor(v); };
@@ -129,16 +137,18 @@ export function createOffice(view, overlay, id, cfg) {
       box(.05, 2.6, .03, M('#0c0c10', { roughness: .4 }), x, 2.8, -D / 2 + .23);
     }
   }
-  box(8, .02, 5.4, M(room.floorRug), 3.4, .01, 3.7);
-  box(7, .02, 4.2, M(room.desks), -5, .01, -3.4);
+  box(8, .02, 5.4, M(room.floorRug, { roughness: .95 }), 3.4, .01, 3.7);
 
   const mon = {};
   DESKS.forEach(([x, z], i) => {
-    box(2.2, .1, 1.1, M('#2a2a30', { roughness: .4 }), x, 1.15, z);
-    for (const dx of [-1, 1]) box(.08, 1.1, .9, M('#111'), x + dx, .55, z);
+    box(2.3, .07, 1.15, M('#20202a', { roughness: .08, metalness: .6, envMapIntensity: 2 }), x, 1.15, z);
+    box(2.36, .02, 1.21, GLOWG, x, 1.085, z);
+    box(2.34, .025, 1.19, GOLD, x, 1.105, z);
+    for (const dx of [-1, 1]) box(.05, 1.08, .95, GOLD, x + dx, .55, z);
     box(.15, .4, .15, M('#111'), x, 1.4, z - .3);
+    box(1.36, .81, .04, GOLD, x, 1.85, z - .355);
     mon[i] = box(1.3, .75, .06, M('#000', { emissive: '#222', emissiveIntensity: 1 }), x, 1.85, z - .32);
-    const seat = M(room.chair, { roughness: .6 });
+    const seat = M('#3a3038', { roughness: .32, metalness: .15 });
     box(.7, .08, .62, seat, x, .5, z + .95); box(.66, .72, .08, seat, x, .95, z + 1.38);
     cyl(.04, .04, .46, 8, M('#26262c', { metalness: .7, roughness: .4 }), x, .24, z + .95);
     cyl(.26, .28, .04, 16, M('#17171b', { metalness: .6, roughness: .4 }), x, .03, z + .95);
@@ -147,9 +157,9 @@ export function createOffice(view, overlay, id, cfg) {
   });
 
   // coffee station and plants, as in gork's office
-  box(1.6, 1, .8, M('#3a3a42'), 8.4, .5, 1.5);
-  box(.6, .8, .5, M('#888', { metalness: .9, roughness: .25 }), 8.4, 1.4, 1.5);
-  box(.12, .12, .12, M('#fff'), 8.4, 1.15, 1.85);
+  box(1.6, 1, .8, M('#0b0b10', { roughness: .1, metalness: .6 }), 3.4, .5, -6.3);
+  box(1.64, .03, .84, GOLD, 3.4, 1.01, -6.3);
+  box(.6, .8, .5, M('#c7ced6', { metalness: 1, roughness: .15 }), 3.4, 1.42, -6.3);
   function plant(x, z) {
     box(.6, .7, .6, M('#d8d2c8'), x, .35, z);
     for (let i = 0; i < 5; i++) {
@@ -158,21 +168,41 @@ export function createOffice(view, overlay, id, cfg) {
       l.rotation.set(Math.sin(i) * .4, 0, Math.cos(i) * .4); l.castShadow = true; scene.add(l);
     }
   }
-  plant(-9.2, -6.2); plant(9.2, -6.2); plant(-9.2, 6.2);
+  plant(-3.4, -6.3); plant(9.2, 1.4); plant(-9.2, 1.4);
 
-  // the meeting table (a felt poker table in the casino)
-  const mt = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, .1, 48), room.felt ? M('#0f5132', { roughness: .95 }) : M('#d9d4cb', { roughness: .3 }));
-  mt.position.set(-4, 1, 2.5); mt.castShadow = mt.receiveShadow = true; scene.add(mt);
-  if (room.felt) { const r = new THREE.Mesh(new THREE.TorusGeometry(1.6, .09, 12, 64), M('#2a1a10', { roughness: .45 })); r.rotation.x = Math.PI / 2; r.position.set(-4, 1.04, 2.5); r.castShadow = true; scene.add(r); }
-  box(.2, 1, .2, M('#222'), -4, .5, 2.5);
+  // the long table: black stone on a gold edge, lit from underneath, a line of lights over it
+  const T = TABLE, top = new THREE.Mesh(new RoundedBoxGeometry(T.w, .12, T.d, 4, .05), M(room.felt ? '#0f5132' : '#262632', { roughness: room.felt ? .9 : .05, metalness: room.felt ? 0 : .6, envMapIntensity: 2.2 }));
+  top.position.set(T.x, 1.1, T.z); top.castShadow = top.receiveShadow = true; scene.add(top);
+  box(T.w + .06, .04, T.d + .06, GLOWG, T.x, 1.03, T.z);
+  box(T.w - .5, .03, T.d - .5, GLOWG, T.x, .98, T.z);
+  for (const dx of [-3.8, 3.8]) { box(.16, 1, T.d - .35, GOLD, T.x + dx, .5, T.z); box(.2, .03, T.d - .1, GOLD, T.x + dx, .02, T.z); }
+  box(T.w - 1, .05, .07, GOLD, T.x, 4.1, T.z); for (const dx of [-4, 4]) box(.03, .9, .03, GOLD, T.x + dx, 4.55, T.z);
+  for (let i = -4; i <= 4; i++) { const l = new THREE.Mesh(new THREE.SphereGeometry(.07, 12, 8), GLOWG); l.position.set(T.x + i, 4.0, T.z); scene.add(l); }
+  const tl = new THREE.PointLight('#ffdcae', 14, 11); tl.position.set(T.x, 3.7, T.z); scene.add(tl);
+  // the chairs, and what each person does there: a laptop, a phone, a tablet, a notebook, lunch (shown only while someone is there)
+  const seatM = M('#3a3038', { roughness: .32, metalness: .15 }), dark = M('#101014', { roughness: .25, metalness: .5 }), lit = new THREE.MeshBasicMaterial({ color: '#b9d4ff', toneMapped: false });
+  const makeProp = [
+    (g) => { box(.5, .02, .34, dark, 0, 0, 0, g); const s = box(.5, .32, .02, lit, 0, .16, -.17, g); s.rotation.x = -.2; },
+    (g) => { box(.11, .015, .22, dark, 0, 0, 0, g); box(.09, .005, .19, lit, 0, .012, 0, g); },
+    (g) => { box(.3, .015, .42, dark, 0, 0, 0, g); box(.27, .005, .38, lit, 0, .012, 0, g); },
+    (g) => { box(.34, .025, .44, M('#efe9dc', { roughness: .8 }), 0, 0, 0, g); const p = box(.02, .02, .3, GOLD, .08, .03, 0, g); p.rotation.y = .4; },
+    (g) => { cyl(.22, .16, .04, 24, M('#f4f1ea', { roughness: .25 }), 0, 0, 0, g); cyl(.09, .1, .05, 12, M('#b5752f', { roughness: .7 }), 0, .04, 0, g); box(.02, .012, .26, GOLD, .28, 0, 0, g); },
+    (g) => { box(.11, .015, .22, dark, 0, 0, 0, g); box(.09, .005, .19, lit, 0, .012, 0, g); cyl(.05, .04, .12, 12, M('#f4f1ea'), .24, .06, -.06, g); },
+  ];
+  const props = TABLE_SEATS.map((q, i) => {
+    box(.7, .08, .62, seatM, q.x, .5, q.z); box(.66, .72, .08, seatM, q.x, .95, q.z + q.side * .36);
+    cyl(.04, .04, .46, 8, GOLD, q.x, .24, q.z); cyl(.26, .28, .04, 16, GOLD, q.x, .03, q.z);
+    const g = new THREE.Group(); g.position.set(q.x, 1.18, T.z + q.side * (T.d / 2 - .36)); g.rotation.y = q.side > 0 ? 0 : Math.PI; g.visible = false; makeProp[i](g); scene.add(g); return g;
+  });
 
   const kit = { THREE, scene, M, box, cyl, tex, loadTex, eglobeTex, Rounded: RoundedBoxGeometry, accent: cfg.accent };
   const theme = buildTheme(id, kit);
 
   // ---- walking: a grid over the floor, breadth-first paths around the furniture
-  const OB = [[7.6, 1.1, 9.2, 1.9], [-9.8, -6.8, -8.6, -5.6], [8.6, -6.8, 9.8, -5.6], [-9.8, 5.6, -8.6, 6.8], [-10, -3.2, -9.6, .4], ...theme.blocked];
+  const OB = [[2.6, -6.8, 4.2, -5.9], [-3.8, -6.7, -3, -5.9], [8.8, 1, 9.6, 1.8], [-9.6, 1, -8.8, 1.8], ...theme.blocked];
+  TABLE_SEATS.forEach((q) => OB.push([q.x - .35, q.z - .42, q.x + .35, q.z + .42]));
   DESKS.forEach(([x, z]) => OB.push([x - 1.1, z - .55, x + 1.1, z + .55], [x - .35, z + .65, x + .35, z + 1.42]));
-  const blocked = (x, z) => x < X0 || x > -X0 || z < Z0 || z > -Z0 || Math.hypot(x + 4, z - 2.5) < 1.6 + MG || OB.some((o) => x > o[0] - MG && x < o[2] + MG && z > o[1] - MG && z < o[3] + MG);
+  const blocked = (x, z) => x < X0 || x > -X0 || z < Z0 || z > -Z0 || (Math.abs(x - TABLE.x) < TABLE.w / 2 + MG && Math.abs(z - TABLE.z) < TABLE.d / 2 + MG) || OB.some((o) => x > o[0] - MG && x < o[2] + MG && z > o[1] - MG && z < o[3] + MG);
   const FREE = new Uint8Array((GX + 1) * (GZ + 1));
   for (let i = 0; i <= GX; i++) for (let j = 0; j <= GZ; j++) FREE[i * (GZ + 1) + j] = blocked(X0 + i * CS, Z0 + j * CS) ? 0 : 1;
   const SPOTS = [...BASE_SPOTS, ...(theme.spots || [])].filter((s) => !blocked(s[0], s[1]));
@@ -230,12 +260,14 @@ export function createOffice(view, overlay, id, cfg) {
   function target(a) {
     const d = DESKS[(a.seat ?? 0) % DESKS.length];
     if (a.view === 'working' || a.view === 'quiet') return [d[0], d[1] + .95, Math.PI];
-    if (a.view === 'waiting') return [d[0] + 1.3, d[1] + 1.6, 0];
+    if (a.view === 'waiting') return [d[0] - Math.sign(d[0]) * 1.3, d[1] + 1.6, 0];
     if (a.view === 'meeting') {
       const i = agents.filter((x) => x.view === 'meeting').indexOf(a), m = MEET[i % MEET.length];
-      return [m[0], m[1], Math.atan2(-4 - m[0], 2.5 - m[1])];
+      return [m[0], m[1], Math.atan2(TABLE.x - m[0], TABLE.z - m[1])];
     }
-    return null;
+    // nobody's given them work: at the long table
+    const q = TABLE_SEATS[(a.seat ?? 0) % TABLE_SEATS.length];
+    return [q.x, q.z, q.side > 0 ? Math.PI : 0, true];
   }
 
   function makeBot(a) {
@@ -358,7 +390,9 @@ export function createOffice(view, overlay, id, cfg) {
       } else if (tg[2] != null) {
         let df = tg[2] - b.G.rotation.y; df = Math.atan2(Math.sin(df), Math.cos(df)); b.G.rotation.y += df * Math.min(1, dt * 6);
       }
-      b.bot.pose({ t, dt, moving: mv, phase: b.ph, view: a.view, happy: b.happy > t });
+      const atTable = a.view === 'idle' && tg[3] === true && !mv;
+      b.bot.pose({ t, dt, moving: mv, phase: b.ph, view: a.view, happy: b.happy > t, sitting: atTable });
+      const pr0 = props[(a.seat ?? 0) % props.length]; if (pr0) pr0.visible = atTable;
 
       // what the bubble says is exactly what the last report says
       let txt = '', pr = -1, col = '#111';

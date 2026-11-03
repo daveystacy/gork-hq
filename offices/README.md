@@ -29,6 +29,17 @@ The trading bot's office, gork.expire.org, is the page at the root of this repo 
 - Decor carries no prices, balances or mint counts. The only numbers in an office are real ones.
 - No secrets, wallet addresses or personal details in reports: the offices are public pages.
 
+## Asking the owner (one click, beside Open chat)
+
+```sql
+select office_ask('lobby', 'Merge PR 95 to expire.org?');                     -- buttons: Approve, Not now. Returns the id.
+select office_ask('lobby', 'Which dorm layout?', array['Layout A','Layout B']); -- your own buttons, up to 4
+select status, answer from office_asks where id = 12;                         -- read the answer back
+select office_ask_withdraw(12);                                               -- it no longer applies
+```
+
+Chats can't be woken by a click: when you ask, schedule a check-in for yourself and read the answer then. Offices are public, so keep questions free of secrets. A click needs the owner key, which is stored only as a hash; the browser remembers it per office address. Permission prompts that belong to the Claude app itself can't be answered from here.
+
 ## Reporting (from a Claude chat with the Supabase connector)
 
 Run these with `execute_sql` on project `szpczmrvthxkdaxqzlqk`. They aren't exposed to the public API, so no token is needed.

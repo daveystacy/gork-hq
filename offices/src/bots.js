@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
-export const KINDS = ['liquid', 'smoke', 'chrome', 'glitch', 'box']; // by desk; the lead sits in the centre
+export const KINDS = ['box', 'glitch', 'smoke', 'box', 'glitch', 'smoke']; // by desk: two of each
 
 const R = .37;            // head radius
 const HEAD_Y = 2.8;
@@ -434,8 +434,8 @@ export function createBotFactory({ tex, loadTex, studio, mirror }) {
     const want = new THREE.Vector3(), wantPole = new THREE.Vector3();
 
     // called every frame with what the agent is really doing
-    function pose({ t, dt, moving, phase, view, happy }) {
-      const seated = (view === 'working' || view === 'quiet') && !moving;
+    function pose({ t, dt, moving, phase, view, happy, sitting = false }) {
+      const seated = (sitting || view === 'working' || view === 'quiet') && !moving;
       const ease = Math.min(1, dt * 6);
       st.sit += ((seated ? 1 : 0) - st.sit) * ease;
       const waving = view === 'waiting' && !moving;
@@ -451,7 +451,7 @@ export function createBotFactory({ tex, loadTex, studio, mirror }) {
         leg.shin.rotation.x += (targetK - leg.shin.rotation.x) * Math.min(1, dt * 14);
 
         const a = arms[s];
-        const typing = view === 'working' && st.sit > .55;
+        const typing = (view === 'working' || sitting) && st.sit > .55; // at a desk, or busy with something at the long table
         if (typing) {
           want.set(s * .17, 1.83 + Math.sin(t * 13 + s * 1.7) * .012, .66 + Math.sin(t * 7 + s) * .012);
           wantPole.set(s * .6, -1, -.25);

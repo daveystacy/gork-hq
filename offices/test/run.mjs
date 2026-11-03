@@ -68,6 +68,8 @@ async function openOffice(ctx, office, world) {
     if (table === 'office_agents') json = world.agents[o] || [];
     else if (table === 'office_tasks') json = world.tasks[o] || [];
     else if (table === 'office_log') json = world.log[o] || [];
+    else if (table === 'office_asks') json = (world.asks || []).filter((q) => q.status !== 'answered');
+    else if (table === 'office_answer') { const b = r.request().postDataJSON(); if (b.p_key !== 'a'.repeat(64)) return r.fulfill({ status: 401, json: {}, headers: { 'access-control-allow-origin': '*' } }); const q = world.asks.find((x) => x.id === b.p_id); q.status = 'answered'; q.answer = b.p_answer; json = { ok: true }; }
     else if (table === 'office_summary') json = summary(world);
     else if (table === 'ebt_bg_state') json = [{ running: true, last_tick: iso(0) }];
     r.fulfill({ json, headers: { 'access-control-allow-origin': '*' } });
@@ -99,6 +101,27 @@ for (const o of OFFICES) {
     if (shots) await page.screenshot({ path: path.join(shots, `${o}-${label}.png`) });
     await page.close();
   }
+}
+
+// the owner's one-click answer: needs the key, then sends the chosen option and clears the card
+{
+  const world = blankWorld();
+  world.asks = [{ id: 7, question: 'Merge PR 95 to expire.org?', options: ['Approve', 'Not now'], status: 'open' }];
+  const { page, errors } = await openOffice(desktop, 'lobby', world);
+  await page.waitForSelector('.ask button', { timeout: 45000 });
+  check(await page.locator('#acts #asks + #nochat, #acts #asks ~ #chat').count() > 0, 'approve buttons sit beside Open chat');
+  page.once('dialog', (d) => d.accept('wrong'));
+  page.once('dialog', () => {});
+  page.on('dialog', (d) => d.dismiss().catch(() => {}));
+  await page.locator('.ask button', { hasText: 'Approve' }).click();
+  await page.waitForTimeout(600);
+  check(world.asks[0].status === 'open', 'a wrong key sends nothing');
+  await page.evaluate((k) => localStorage.setItem('xpo:ownerkey', k), 'a'.repeat(64));
+  await page.locator('.ask button', { hasText: 'Approve' }).click();
+  await page.waitForFunction(() => !document.querySelector('.ask'), null, { timeout: 8000 });
+  check(world.asks[0].answer === 'Approve', 'the click sends the chosen answer and clears the card');
+  check(errors.length === 0, `approve flow: no page errors ${errors.slice(0, 2).join(' | ')}`);
+  await page.close();
 }
 
 // 2. reports appear without a reload, and survive one

@@ -1,7 +1,7 @@
 // The page around the 3D office: the office switcher, the team, tasks and activity, and the all-offices sheet.
 
 import { OFFICES, ORDER, GORK, officeFromAddress, officeHref } from './offices.js';
-import { loadOffice, loadSummary, loadGork, subscribe, cacheGet, cacheSet, agentView, officeState, STATE_WORD, ago, clock } from './data.js';
+import { answerAsk, loadOffice, loadSummary, loadGork, subscribe, cacheGet, cacheSet, agentView, officeState, STATE_WORD, ago, clock } from './data.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -52,6 +52,35 @@ function renderHeader() {
   a.href = chat || '#'; a.toggleAttribute('hidden', !chat);
   const note = $('nochat');
   note.hidden = !!chat;
+}
+
+// what a chat is waiting on you for: the question and its answers, one click each, beside Open chat
+const OWNER_KEY = 'xpo:ownerkey';
+function ownerKey() { try { return localStorage.getItem(OWNER_KEY) || ''; } catch { return ''; } }
+function saveOwnerKey(k) { try { localStorage.setItem(OWNER_KEY, k); } catch { /* private window: asks again next time */ } }
+const linked = /^#owner=([0-9a-f]{32,128})$/.exec(location.hash);
+if (linked) { saveOwnerKey(linked[1]); history.replaceState(null, '', location.pathname + location.search); }
+let asksBusy = false;
+function renderAsks() {
+  const asks = S.office?.asks || [];
+  setOnce('asks', $('asks'), asks.map((q) => `<div class="ask" role="group" aria-label="${esc(q.question)}"><span class="ask-q">${esc(q.question)}</span>${(q.options || []).map((o, i) => `<button type="button" class="btn${i === 0 ? ' pri' : ''}" data-ask="${Number(q.id)}" data-a="${esc(o)}">${esc(o)}</button>`).join('')}</div>`).join(''));
+  $('asks').hidden = !asks.length;
+}
+async function clickAsk(btn) {
+  if (asksBusy) return;
+  let key = ownerKey();
+  if (!key) { key = (window.prompt('Paste your owner key to answer from this office. This browser remembers it.') || '').trim(); if (!key) return; }
+  asksBusy = true; const box = $('asks'); box.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+  const before = btn.textContent; btn.textContent = 'Sending…';
+  try {
+    await answerAsk(Number(btn.dataset.ask), btn.dataset.a, key);
+    saveOwnerKey(key);
+    S.office.asks = S.office.asks.filter((q) => q.id !== Number(btn.dataset.ask)); renderedSig.asks = null; renderAsks();
+  } catch (e) {
+    renderedSig.asks = null; renderAsks();
+    if (e.message === 'unauthorized') { try { localStorage.removeItem(OWNER_KEY); } catch { /* nothing saved */ } window.alert('That owner key did not work, so nothing was sent.'); }
+    else window.alert('Could not send your answer. Check your connection and try again.');
+  } finally { asksBusy = false; if (btn.isConnected) { btn.textContent = before; } }
 }
 
 function renderConn() {
@@ -152,7 +181,7 @@ let lastDone = null;
 function renderOffice() {
   if (!S.office || !cfg) return;
   const agents = S.office.agents.map((a) => agentView(a));
-  renderTeam(agents); renderTasks(S.office.tasks, agents); renderLog(S.office.log, agents);
+  renderAsks(); renderTeam(agents); renderTasks(S.office.tasks, agents); renderLog(S.office.log, agents);
   renderHud(agents, S.office.tasks); renderTicker(S.office.log);
   if (office3d) { office3d.setAgents(agents); renderWall(agents, S.office.tasks, S.office.log); }
   // a bot that just finished a task gets to smile about it
@@ -232,6 +261,7 @@ function schedulePoll() {
 // ---------- start
 
 function boot() {
+  $('asks').addEventListener('click', (e) => { const b = e.target.closest('button[data-ask]'); if (b) clickAsk(b); });
   document.documentElement.style.setProperty('--accent', cfg?.accent || '#e8e8ee');
   const m = document.querySelector('meta[name="apple-mobile-web-app-title"]');
   if (m) m.content = cfg ? cfg.name : 'Expire Offices';

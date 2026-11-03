@@ -11,12 +11,21 @@ async function rest(path) {
 }
 
 export async function loadOffice(id) {
-  const [agents, tasks, log] = await Promise.all([
+  const [agents, tasks, log, asks] = await Promise.all([
     rest(`office_agents?office=eq.${id}&select=*&order=seat`),
     rest(`office_tasks?office=eq.${id}&select=*&order=updated_at.desc&limit=80`),
     rest(`office_log?office=eq.${id}&select=*&order=at.desc,id.desc&limit=60`),
+    rest(`office_asks?office=eq.${id}&status=eq.open&select=id,question,options&order=created_at&limit=4`).catch(() => []),
   ]);
-  return { agents, tasks, log };
+  return { agents, tasks, log, asks };
+}
+
+// the owner's one-click answer. Throws 'unauthorized' if the key is wrong.
+export async function answerAsk(askId, answer, key) {
+  const r = await fetch(`${SB}/rest/v1/rpc/office_answer`, { method: 'POST', headers: { apikey: PK, 'content-type': 'application/json' }, body: JSON.stringify({ p_id: askId, p_answer: answer, p_key: key }) });
+  if (r.status === 401 || r.status === 403) throw new Error('unauthorized');
+  if (!r.ok) throw new Error(`answer: ${r.status}`);
+  return r.json();
 }
 
 export const loadSummary = () => rest('office_summary?select=*');
@@ -39,6 +48,7 @@ export async function subscribe(office, onChange, onStatus) {
     on('office_agents');
     on('office_tasks', office ? `office=eq.${office}` : undefined);
     on('office_log', office ? `office=eq.${office}` : undefined);
+    if (office) on('office_asks', `office=eq.${office}`);
     ch.subscribe((status) => onStatus(status));
   } catch (e) {
     console.warn('realtime unavailable', e);
