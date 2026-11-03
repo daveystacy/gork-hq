@@ -60,7 +60,7 @@ function arcade(k, name, color, x, z) {
     g.fillText(name, W / 2, 96); g.shadowBlur = 0;
   }, 512, 400);
   const scr = new THREE.Mesh(new THREE.PlaneGeometry(1.02, .8), new THREE.MeshBasicMaterial({ map, toneMapped: false }));
-  scr.position.set(x, 1.62, z + .5); scr.rotation.x = -.16; k.scene.add(scr);
+  scr.position.set(x, 1.62, z + .56); scr.rotation.x = -.16; k.scene.add(scr);
   const light = new THREE.PointLight(color, 3, 3.2); light.position.set(x, 1.5, z + 1.1); k.scene.add(light);
 }
 

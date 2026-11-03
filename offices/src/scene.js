@@ -10,6 +10,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { buildTheme, ROOM } from './themes.js';
+import { createBotFactory, KINDS } from './bots.js';
 import { ago } from './data.js';
 
 const W = 20, D = 14;
@@ -95,7 +96,7 @@ export function createOffice(view, overlay, id, cfg) {
   }
   const floorT = new THREE.CanvasTexture(fc);
   floorT.wrapS = floorT.wrapT = THREE.RepeatWrapping; floorT.repeat.set(4, 3); floorT.colorSpace = THREE.SRGBColorSpace;
-  box(W, .3, D, M('#fff', { map: floorT, roughness: .12, metalness: .4, color: '#2a2a33' }), 0, -.15, 0);
+  box(W, .3, D, M('#fff', { map: floorT, roughness: .28, metalness: .2, color: '#75757f' }), 0, -.15, 0);
   box(W, 5, .3, M('#1a1b24'), 0, 2.5, -D / 2);
   box(.3, 5, D, M('#16171f'), -W / 2, 2.5, 0);
   // the view out: one continuous skyline across the five windows, its light set per office
@@ -133,12 +134,16 @@ export function createOffice(view, overlay, id, cfg) {
 
   const mon = {};
   DESKS.forEach(([x, z], i) => {
-    box(2.2, .1, 1.1, M('#2a2a30', { roughness: .4 }), x, 1.05, z);
-    for (const dx of [-1, 1]) box(.08, 1, .9, M('#111'), x + dx, .5, z);
-    box(.15, .4, .15, M('#111'), x, 1.3, z - .3);
-    mon[i] = box(1.3, .75, .06, M('#000', { emissive: '#222', emissiveIntensity: 1 }), x, 1.75, z - .32);
-    box(.6, .08, .6, M(room.chair), x, .6, z + .95); box(.6, .6, .08, M(room.chair), x, .95, z + 1.25);
-    const pl = new THREE.PointLight('#88f', 0, 3); pl.position.set(x, 1.8, z); scene.add(pl); mon[i].userData.l = pl;
+    box(2.2, .1, 1.1, M('#2a2a30', { roughness: .4 }), x, 1.15, z);
+    for (const dx of [-1, 1]) box(.08, 1.1, .9, M('#111'), x + dx, .55, z);
+    box(.15, .4, .15, M('#111'), x, 1.4, z - .3);
+    mon[i] = box(1.3, .75, .06, M('#000', { emissive: '#222', emissiveIntensity: 1 }), x, 1.85, z - .32);
+    const seat = M(room.chair, { roughness: .6 });
+    box(.7, .08, .62, seat, x, .5, z + .95); box(.66, .72, .08, seat, x, .95, z + 1.38);
+    cyl(.04, .04, .46, 8, M('#26262c', { metalness: .7, roughness: .4 }), x, .24, z + .95);
+    cyl(.26, .28, .04, 16, M('#17171b', { metalness: .6, roughness: .4 }), x, .03, z + .95);
+    box(.72, .03, .24, M('#111114', { roughness: .4 }), x, 1.215, z + .22);
+    const pl = new THREE.PointLight('#88f', 0, 3); pl.position.set(x, 1.9, z); scene.add(pl); mon[i].userData.l = pl;
   });
 
   // coffee station and plants, as in gork's office
@@ -166,7 +171,7 @@ export function createOffice(view, overlay, id, cfg) {
 
   // ---- walking: a grid over the floor, breadth-first paths around the furniture
   const OB = [[7.6, 1.1, 9.2, 1.9], [-9.8, -6.8, -8.6, -5.6], [8.6, -6.8, 9.8, -5.6], [-9.8, 5.6, -8.6, 6.8], [-10, -3.2, -9.6, .4], ...theme.blocked];
-  DESKS.forEach(([x, z]) => OB.push([x - 1.1, z - .55, x + 1.1, z + .55], [x - .3, z + .65, x + .3, z + 1.3]));
+  DESKS.forEach(([x, z]) => OB.push([x - 1.1, z - .55, x + 1.1, z + .55], [x - .35, z + .65, x + .35, z + 1.42]));
   const blocked = (x, z) => x < X0 || x > -X0 || z < Z0 || z > -Z0 || Math.hypot(x + 4, z - 2.5) < 1.6 + MG || OB.some((o) => x > o[0] - MG && x < o[2] + MG && z > o[1] - MG && z < o[3] + MG);
   const FREE = new Uint8Array((GX + 1) * (GZ + 1));
   for (let i = 0; i <= GX; i++) for (let j = 0; j <= GZ; j++) FREE[i * (GZ + 1) + j] = blocked(X0 + i * CS, Z0 + j * CS) ? 0 : 1;
@@ -203,33 +208,21 @@ export function createOffice(view, overlay, id, cfg) {
     return out;
   }
 
-  // ---- the Expirites
-  function rimMat(c) {
-    return new THREE.ShaderMaterial({
-      uniforms: { c: { value: new THREE.Color(c) } }, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
-      vertexShader: 'varying vec3 n;varying vec3 v;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);n=normalize(normalMatrix*normal);v=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
-      fragmentShader: 'uniform vec3 c;varying vec3 n;varying vec3 v;void main(){float f=pow(1.-abs(dot(n,v)),2.2);gl_FragColor=vec4(c*(f*2.2+.06),f*.9+.05);}',
-    });
-  }
-  const inM = new THREE.MeshPhysicalMaterial({ color: '#03030a', roughness: .05, clearcoat: 1, clearcoatRoughness: 0, envMapIntensity: 1.2 });
-  const capM = new THREE.MeshPhysicalMaterial({ color: '#050506', roughness: .55, clearcoat: .25, clearcoatRoughness: .5, envMapIntensity: .35, sheen: .3, sheenColor: '#222' });
-  const hood = M('#0d0d10', { roughness: .95 }), pant = M('#0b0b10', { roughness: .6, transparent: true, opacity: .55 }), shoe = M('#f5f5f5', { roughness: .5 });
-  const SMOKE = tex((g, w, h) => {
-    for (let i = 0; i < 9; i++) {
-      const x = 34 + Math.random() * 60, y = 34 + Math.random() * 60, r = g.createRadialGradient(x, y, 0, x, y, 30);
-      r.addColorStop(0, 'rgba(255,255,255,.35)'); r.addColorStop(1, 'rgba(255,255,255,0)');
-      g.fillStyle = r; g.fillRect(0, 0, w, h);
-    }
-  });
-  function faceTex(k) {
-    return tex((g) => {
-      g.fillStyle = '#fff'; g.shadowColor = '#fff'; g.shadowBlur = 14; g.lineWidth = 12; g.lineCap = 'round'; g.strokeStyle = '#fff';
-      if (k === 'b') { g.fillRect(70, 92, 40, 8); g.fillRect(146, 92, 40, 8); } else { g.beginPath(); g.arc(90, 96, 17, 0, 7); g.arc(166, 96, 17, 0, 7); g.fill(); }
-      g.beginPath(); if (k === 'h') g.arc(128, 135, 48, .15 * Math.PI, .85 * Math.PI); else g.arc(128, 118, 52, .3 * Math.PI, .7 * Math.PI); g.stroke();
-    }, 256, 192);
-  }
-  const FACE = { n: faceTex('n'), b: faceTex('b'), h: faceTex('h') };
-  const WORD = tex((g, w, h) => { g.fillStyle = '#fff'; g.font = '600 70px "Helvetica Neue",Helvetica,Arial,sans-serif'; g.textAlign = 'center'; g.fillText('expire', w / 2, h / 2 + 24); }, 320, 120);
+  // ---- the agents (bots.js): the owner's five reference robots, one per desk
+  // chrome needs something to reflect: a dark studio with bright strip lights
+  const studioScene = new THREE.Scene(); studioScene.background = new THREE.Color('#04050a');
+  const strip = (w, h, x, y, z, c, i) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(i), side: THREE.DoubleSide }));
+    m.position.set(x, y, z); m.lookAt(0, 0, 0); studioScene.add(m);
+  };
+  strip(7, 1.4, 0, 7, 2, '#ffffff', 7); strip(1.1, 7, -7, 1, 3, '#d5e4ff', 5); strip(1.1, 7, 7, 1, -1, '#ffffff', 4);
+  strip(9, .7, 0, -2.2, 7, '#a9c2ff', 2.5); strip(3, 3, 3, 2, -8, '#39415c', 2); strip(.5, 5, 3.5, 1, 7, '#ffffff', 5); strip(.35, 5, -2.5, 1, 7, '#ffffff', 3);
+  const studio = pmrem.fromScene(studioScene, .012).texture;
+  // the chrome head: the same lights on a bright room with dark bands, so it reads as silver mirror
+  studioScene.background = new THREE.Color('#8d99ad');
+  strip(9, 1.1, 0, 1.6, 7.5, '#0a0b10', 1); strip(9, .7, 0, -.9, 7.5, '#05060a', 1); strip(1.6, 7, 6, 1, 4, '#07080c', 1); strip(1.6, 7, -6, 1, -3, '#07080c', 1);
+  const mirror = pmrem.fromScene(studioScene, .008).texture;
+  const factory = createBotFactory({ tex, loadTex, studio, mirror });
 
   const bots = {};
   let agents = [], focusId = null, focusAng = 0;
@@ -246,58 +239,16 @@ export function createOffice(view, overlay, id, cfg) {
   }
 
   function makeBot(a) {
-    const col = a.color, G = new THREE.Group(), body = new THREE.Group(); G.add(body);
-    const cs = (m) => { m.castShadow = true; return m; };
-    const torso = cs(new THREE.Mesh(new THREE.CylinderGeometry(.42, .5, .95, 14), hood)); torso.position.y = 1.5; torso.scale.z = .75; body.add(torso);
-    const hd = cs(new THREE.Mesh(new THREE.TorusGeometry(.26, .12, 8, 16), hood)); hd.rotation.x = Math.PI / 2; hd.position.y = 2.02; body.add(hd);
-    const hb = cs(new THREE.Mesh(new THREE.SphereGeometry(.34, 12, 10, 0, Math.PI * 2, 0, 1.6), hood)); hb.position.set(0, 2.1, -.12); hb.rotation.x = -.5; body.add(hb);
-    const H = new THREE.Group(); H.position.y = 2.55; body.add(H);
-    H.add(new THREE.Mesh(new THREE.SphereGeometry(.42, 32, 24), inM));
-    H.add(new THREE.Mesh(new THREE.SphereGeometry(.47, 32, 24), rimMat(col)));
-    const face = new THREE.Mesh(new THREE.PlaneGeometry(.8, .6), new THREE.MeshBasicMaterial({ map: FACE.n, transparent: true, toneMapped: false }));
-    face.position.set(0, -.02, .43); H.add(face);
-    for (const s of [-1, 1]) {
-      const cup = cs(new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .12, 32), capM)); cup.rotation.z = Math.PI / 2; cup.position.set(s * .5, -.02, 0); H.add(cup);
-      const lo = new THREE.Mesh(new THREE.CircleGeometry(.17, 32), new THREE.MeshBasicMaterial({ transparent: true, toneMapped: false }));
-      eglobeTex((t) => { lo.material.map = t; lo.material.needsUpdate = true; });
-      lo.position.set(s * .561, -.02, 0); lo.rotation.y = s * Math.PI / 2; H.add(lo);
-    }
-    const wm = M('#9a9a9a', { metalness: .9, roughness: .25 });
-    for (const o of [0, Math.PI]) {
-      const pts = [];
-      for (let i = 0; i <= 40; i++) { const u = i / 40, an = u * Math.PI * 8 + o; pts.push(new THREE.Vector3(Math.cos(an) * .018, .42 + u * .34, Math.sin(an) * .018)); }
-      H.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 60, .009, 5), wm));
-    }
-    const bulbM = new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 2, toneMapped: false });
-    const bulb = new THREE.Mesh(new THREE.SphereGeometry(.07, 16, 12), bulbM); bulb.position.y = .82; H.add(bulb);
-    const lg = new THREE.Mesh(new THREE.PlaneGeometry(.3, .1), new THREE.MeshBasicMaterial({ map: WORD, transparent: true })); lg.position.set(.17, 1.75, .385); body.add(lg);
-    const limbs = {};
-    for (const s of [-1, 1]) {
-      const arm = new THREE.Group(); arm.position.set(s * .52, 1.88, 0);
-      const am = cs(new THREE.Mesh(new THREE.CapsuleGeometry(.13, .65, 4, 8), hood)); am.position.y = -.4; arm.add(am); arm.rotation.z = s * .12; body.add(arm);
-      const leg = new THREE.Group(); leg.position.set(s * .2, 1.05, 0);
-      const lm = cs(new THREE.Mesh(new THREE.CapsuleGeometry(.16, .6, 4, 8), pant)); lm.position.y = -.42; leg.add(lm);
-      const pk = cs(new THREE.Mesh(new RoundedBoxGeometry(.07, .26, .24, 2, .025), pant)); pk.position.set(s * .17, -.42, 0); leg.add(pk);
-      const fl = new THREE.Mesh(new RoundedBoxGeometry(.08, .07, .25, 2, .02), M('#0c0c0e', { roughness: .9 })); fl.position.set(s * .175, -.28, 0); leg.add(fl);
-      const sh = cs(new THREE.Mesh(new RoundedBoxGeometry(.3, .2, .5, 3, .07), shoe)); sh.position.set(0, -.95, .08); leg.add(sh);
-      const sr = new THREE.Mesh(new THREE.BoxGeometry(.31, .04, .3), M(col)); sr.position.set(0, -.9, .05); leg.add(sr);
-      body.add(leg); limbs[s] = { arm, leg };
-    }
-    const el = document.createElement('div'); el.className = 'bot'; el.style.setProperty('--c', col);
+    const bot = factory.make(KINDS[(a.seat ?? 0) % KINDS.length]);
+    const el = document.createElement('div'); el.className = 'bot'; el.style.setProperty('--c', a.color);
     el.innerHTML = `<div class="bb"></div><div class="nt">${esc(a.name)}</div>`;
     overlay.appendChild(el);
     const n = Object.keys(bots).length, sp = SPOTS[n % SPOTS.length];
-    G.position.set(sp[0], 0, sp[1]);
+    bot.G.position.set(sp[0], 0, sp[1]);
     const t0 = target(a);
-    if (t0) { G.position.set(t0[0], 0, t0[1]); G.rotation.y = t0[2] || 0; }
-    const sm = [];
-    for (let i = 0; i < 32; i++) {
-      const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: SMOKE, color: col, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 }));
-      m.userData = { ph: Math.random(), r: .15 + Math.random() * .4, a: Math.random() * 6.3, sp: .25 + Math.random() * .3 };
-      G.add(m); sm.push(m);
-    }
-    scene.add(G);
-    return { a, sm, G, body, limbs, el, face, bulbM, H, path: [], gk: '', ph: Math.random() * 6, wx: null, wait: 0, key: '', col };
+    if (t0) { bot.G.position.set(t0[0], 0, t0[1]); bot.G.rotation.y = t0[2] || 0; }
+    scene.add(bot.G);
+    return { a, bot, G: bot.G, el, path: [], gk: '', ph: Math.random() * 6, wx: null, wait: 0, key: '' };
   }
 
   function setAgents(list) {
@@ -363,6 +314,7 @@ export function createOffice(view, overlay, id, cfg) {
 
   // ---- frame
   const clock = new THREE.Clock(), v3 = new THREE.Vector3();
+  const debug = { bots, cam, ctl, scene, freeze: false, view: null };
   let running = true;
   document.addEventListener('visibilitychange', () => { running = !document.hidden; if (running) { clock.getDelta(); requestAnimationFrame(loop); } });
 
@@ -377,9 +329,11 @@ export function createOffice(view, overlay, id, cfg) {
       window.__officeFps = Math.round(f);
       fpsN = 0; fpsT = 0;
     }
+    factory.tick(t);
     const firstMeet = agents.find((q) => q.view === 'meeting');
     for (const a of agents) {
       const b = bots[a.id]; if (!b) continue;
+      if (debug.freeze) { b.bot.pose({ t, dt, moving: false, phase: b.ph, view: debug.view || 'idle', happy: false }); continue; }
       let tg = target(a); const seated = !!tg;
       if (!tg) {
         if (b.wait > 0) b.wait -= dt;
@@ -404,24 +358,7 @@ export function createOffice(view, overlay, id, cfg) {
       } else if (tg[2] != null) {
         let df = tg[2] - b.G.rotation.y; df = Math.atan2(Math.sin(df), Math.cos(df)); b.G.rotation.y += df * Math.min(1, dt * 6);
       }
-      const typing = a.view === 'working' && !mv;
-      const sw = mv ? Math.sin(b.ph) * .6 : 0;
-      for (const s of [-1, 1]) {
-        b.limbs[s].leg.rotation.x += (s * sw - b.limbs[s].leg.rotation.x) * .3;
-        b.limbs[s].arm.rotation.x += ((typing ? -.9 + Math.sin(t * 14 + s) * .05 : -s * sw) - b.limbs[s].arm.rotation.x) * .3;
-      }
-      const ht = t + b.ph;
-      b.face.material.map = b.happy > t ? FACE.h : (ht % 4 < .12 ? FACE.b : FACE.n);
-      b.bulbM.emissiveIntensity = a.view === 'working' ? 1.5 + Math.sin(t * 6 + b.ph) * 1.2 : a.view === 'waiting' ? 1.5 + Math.sin(t * 3) * 1.4 : .6;
-      b.H.rotation.z = mv ? 0 : Math.sin(t * 1.2 + b.ph) * .05;
-      b.H.rotation.x = mv ? Math.sin(b.ph * 2) * .03 : (a.view === 'quiet' ? .22 : 0);
-      for (const m of b.sm) {
-        const u = m.userData, k = (t * u.sp + u.ph) % 1, an = u.a + t * .8;
-        m.position.set(Math.cos(an) * u.r * (1 + k * .6), .1 + k * 2.3, Math.sin(an) * u.r * (1 + k * .6));
-        const sc = .6 + k * 1.1; m.scale.set(sc, sc, 1);
-        m.material.opacity = Math.sin(k * Math.PI) * (a.view === 'quiet' ? .3 : mv ? 1 : .85); m.material.rotation = an;
-      }
-      b.body.position.y = mv ? Math.abs(Math.cos(b.ph)) * .06 : Math.sin(t * 2 + b.ph) * .015;
+      b.bot.pose({ t, dt, moving: mv, phase: b.ph, view: a.view, happy: b.happy > t });
 
       // what the bubble says is exactly what the last report says
       let txt = '', pr = -1, col = '#111';
@@ -436,7 +373,7 @@ export function createOffice(view, overlay, id, cfg) {
         bb.style.display = txt ? 'block' : 'none'; bb.style.color = col;
         bb.innerHTML = esc(txt) + (pr >= 0 ? `<i><b style="width:${pr}%"></b></i>` : '');
       }
-      v3.set(p.x, 3.75, p.z).project(cam);
+      v3.set(p.x, 3.75 - b.bot.seat.sit * .5, p.z).project(cam);
       b.sx = (v3.x + 1) / 2 * view.clientWidth; b.sy = (1 - v3.y) / 2 * view.clientHeight;
       b.el.style.display = focusId && focusId !== a.id ? 'none' : '';
       b.el.style.zIndex = Math.round((1 - v3.z) * 1000);
@@ -482,6 +419,6 @@ export function createOffice(view, overlay, id, cfg) {
     setAgents, drawWall, focus, unfocus,
     onFocusChange: (fn) => { onFocusChange.fn = fn; },
     cheer: (agentId) => { const b = bots[agentId]; if (b) b.happy = clock.elapsedTime + 6; },
-    debug: { bots, cam, blocked },
+    debug,
   };
 }

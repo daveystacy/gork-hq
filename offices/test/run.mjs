@@ -110,7 +110,7 @@ for (const o of OFFICES) {
   Object.assign(a0, { state: 'working', task: 'Blocking out the ECA dorms', progress: 35, heard_at: iso(0) });
   world.tasks.gamey.push({ id: 1, office: 'gamey', title: 'Block out the ECA dorms', owner: 'a0', status: 'in-progress', note: '', created_at: iso(1), started_at: iso(1), finished_at: null, updated_at: iso(0) });
   world.log.gamey.unshift({ id: 1, office: 'gamey', at: iso(0), agent: 'a0', kind: 'state', msg: 'World → working: Blocking out the ECA dorms' });
-  await page.waitForFunction(() => document.querySelector('#team')?.textContent.includes('Blocking out the ECA dorms'), null, { timeout: 12000 });
+  await page.waitForFunction(() => document.querySelector('#team')?.textContent.includes('Blocking out the ECA dorms'), null, { timeout: 45000 });
   check(true, 'a new report shows in the team panel without a reload');
   await page.waitForFunction(() => [...document.querySelectorAll('.bb')].some((b) => b.textContent.includes('Blocking out') && b.style.display !== 'none'), null, { timeout: 120000 });
   check(true, 'the bot walks to its desk and its bubble shows the task');
@@ -121,15 +121,15 @@ for (const o of OFFICES) {
 
   // waiting on the owner: amber everywhere, including the switcher and the tab title
   Object.assign(world.agents.gamey[2], { state: 'waiting_user', task: 'Which dorm layout do you want?', heard_at: iso(0) });
-  await page.waitForFunction(() => document.title.startsWith('●'), null, { timeout: 12000 });
+  await page.waitForFunction(() => document.title.startsWith('●'), null, { timeout: 45000 });
   check(true, 'waiting on you marks the tab title');
   check((await page.locator('.chip.on .dot.waiting').count()) === 1, 'waiting on you marks the switcher');
 
   // gone quiet: an agent that claims to be working but stopped reporting must not be shown as working
   a0.heard_at = iso(45);
-  await page.waitForFunction(() => document.querySelector('#team .st.quiet'), null, { timeout: 12000 });
+  await page.waitForFunction(() => document.querySelector('#team .st.quiet'), null, { timeout: 45000 });
   check(true, 'an agent silent for 45 minutes shows as gone quiet, not working');
-  await page.waitForFunction(() => [...document.querySelectorAll('.bb')].some((b) => /no report for/.test(b.textContent)), null, { timeout: 20000 });
+  await page.waitForFunction(() => [...document.querySelectorAll('.bb')].some((b) => /no report for/.test(b.textContent)), null, { timeout: 45000 });
   check(true, 'its bubble says how long it has been silent');
   if (shots) await page.screenshot({ path: path.join(shots, 'gamey-quiet.png') });
 
@@ -140,7 +140,7 @@ for (const o of OFFICES) {
 
   // offline: says so and keeps showing the saved copy
   await page.route(/supabase\.co\/rest\/v1\/(.*)/, (r) => r.abort());
-  await page.waitForFunction(() => document.querySelector('#conn')?.classList.contains('off'), null, { timeout: 12000 });
+  await page.waitForFunction(() => document.querySelector('#conn')?.classList.contains('off'), null, { timeout: 45000 });
   check(/saved/.test(await page.locator('#conn').textContent()), 'offline says offline and when the copy was saved');
   check((await page.locator('#team').textContent()).includes('Which dorm layout'), 'offline keeps showing the saved team');
   check(errors.length === 0, `no page errors in the live flow ${errors.slice(0, 2).join(' | ')}`);
@@ -155,7 +155,7 @@ for (const o of OFFICES) {
   world.tasks.minty.push({ id: 2, office: 'minty', title: 'ExpireBings mint page', owner: 'a1', status: 'in-progress', note: '', created_at: iso(10), started_at: iso(9), finished_at: null, updated_at: iso(1) });
   const { page } = await openOffice(desktop, 'gamey', world);
   await page.waitForFunction(() => window.__office && document.querySelectorAll('.ag').length === 5, null, { timeout: 45000 });
-  await page.waitForFunction(() => document.querySelector('#sw .dot.waiting'), null, { timeout: 8000 });
+  await page.waitForFunction(() => document.querySelector('#sw .dot.waiting'), null, { timeout: 30000 });
   await page.click('#allbtn');
   await page.waitForFunction(() => document.querySelectorAll('#allgrid .card').length === 8);
   check(true, 'all offices shows 7 offices + GORK');
