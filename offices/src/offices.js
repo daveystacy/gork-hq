@@ -13,17 +13,17 @@ export const OFFICES = {
   tradey: {
     label: 'Trade', name: 'Trade Office', domain: 'tradey.expire.org', accent: '#f5c542',
     blurb: 'expiretrade: markets, Launchpad, Social and Live',
-    site: ['Open expiretrade', 'https://expire.org/index.html#app=trade'],
+    site: ['Open expiretrade', 'https://expire.org/trade'],
   },
   arty: {
     label: 'NFT', name: 'NFT Office', domain: 'arty.expire.org', accent: '#a78bfa',
     blurb: 'The NFT marketplace: collections, items and live data',
-    site: ['Open marketplace', 'https://expire.org/index.html#nfts'],
+    site: ['Open marketplace', 'https://expire.org/nft'],
   },
   betty: {
     label: 'Casino', name: 'Casino Office', domain: 'betty.expire.org', accent: '#fb7185',
     blurb: 'betexpire: tables, slots and sports on practice SOL',
-    site: ['Open betexpire', 'https://expire.org/index.html#app=casino'],
+    site: ['Open betexpire', 'https://expire.org/bet'],
   },
   story: {
     label: 'Shop', name: 'Shop Office', domain: 'story.expire.org', accent: '#e8e8ee',
