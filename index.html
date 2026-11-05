@@ -4,7 +4,10 @@
 *{box-sizing:border-box}body{margin:0;background:#0b0b0f;color:#e5e5ea;font:13px ui-monospace,Menlo,monospace;display:flex;height:100vh}
 #stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;min-width:0}
 h1{margin:0 0 8px;font-size:18px;letter-spacing:2px}h1 b{color:#8b5cf6}h1 small{color:#666;font-size:11px;margin-left:8px}
-#view{width:100%;height:calc(100vh - 60px);border:1px solid #222;border-radius:12px;overflow:hidden;background:radial-gradient(#171724,#07070a);touch-action:none}#view canvas{display:block}
+#offices{width:100%;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin:0 0 6px;flex:none}#offices::-webkit-scrollbar{display:none}
+#offices a{flex:none;display:flex;align-items:center;gap:6px;height:32px;padding:0 10px;border-radius:8px;color:#9393a0;text-decoration:none;font-weight:600}#offices a:hover{background:#17171d;color:#e7e7ec}#offices a.on{background:#1d1d25;color:#fff;box-shadow:inset 0 -2px 0 #8b5cf6}
+#offices i{width:7px;height:7px;border-radius:50%;background:#3b3b45}#offices i.working{background:#22c55e;box-shadow:0 0 6px #22c55e}#offices i.waiting{background:#f59e0b;box-shadow:0 0 6px #f59e0b}#offices i.quiet{background:none;box-shadow:inset 0 0 0 2px #f59e0b}
+#view{width:100%;height:calc(100vh - 100px);border:1px solid #222;border-radius:12px;overflow:hidden;background:radial-gradient(#171724,#07070a);touch-action:none}#view canvas{display:block}
 #side{width:340px;background:#121218;border-left:1px solid #222;overflow:auto;padding:12px}
 .sec{margin-bottom:14px}.sec h2{font-size:11px;color:#888;text-transform:uppercase;margin:0 0 6px}
 .ag{display:flex;gap:8px;align-items:center;background:#16161c;padding:6px;border-radius:6px;margin-bottom:4px}
@@ -28,7 +31,7 @@ h1{margin:0 0 8px;font-size:18px;letter-spacing:2px}h1 b{color:#8b5cf6}h1 small{
 
 /* Desktop: two live EBT screens side by side (Mobile style + Night style), different tickers. Hidden on phones. Paper only. */
 #scr{display:none;width:100%;gap:12px;margin-top:10px}
-@media(min-width:1000px){#scr{display:grid;grid-template-columns:1fr 1fr}#view{height:calc(100vh - 330px)}}
+@media(min-width:1000px){#scr{display:grid;grid-template-columns:1fr 1fr}#view{height:calc(100vh - 370px)}}
 .sc{height:250px;border-radius:16px;padding:14px 16px;overflow:hidden;position:relative;font-family:Inter,system-ui,sans-serif}
 .sc.m{background:#0d0b14;border:1px solid #2a2540}.sc.n{background:radial-gradient(120% 90% at 100% 0,#2a1f0b,#0a0806 60%);border:1px solid rgba(233,196,106,.35);color:#f3e7c9}
 .sc .hd{display:flex;justify-content:space-between;align-items:center;font:600 10px Inter,system-ui;letter-spacing:1.5px;color:#8f8aa3;text-transform:uppercase}.sc.n .hd{color:#c9a95a}
@@ -42,7 +45,7 @@ h1{margin:0 0 8px;font-size:18px;letter-spacing:2px}h1 b{color:#8b5cf6}h1 small{
 </style>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 </head><body>
-<div id="stage"><h1><b>Expire</b> Trading Bot<small id="upd"></small></h1><div id="view"><div id="ov"></div><div id="hud">…</div><button id="cls" onclick="unfocus()" style="display:none;position:absolute;right:8px;top:58px;z-index:7;font:700 14px ui-monospace,monospace;background:#d4af37;color:#000;border:0;border-radius:8px;padding:6px 12px">✕ back to office</button><div style="position:absolute;right:8px;bottom:40px;z-index:6;font:13px ui-monospace,monospace;color:#888;pointer-events:none">tap a bot for close-up</div><div id="tick"><span>loading…</span></div></div><div id="scr"><div class="sc m" id="scM"></div><div class="sc n" id="scN"></div></div></div>
+<div id="stage"><nav id="offices" aria-label="Offices"><a href="https://gamey.expire.org/"><i data-o="gamey"></i>Game</a><a href="https://tradey.expire.org/"><i data-o="tradey"></i>Trade</a><a href="https://arty.expire.org/"><i data-o="arty"></i>NFT</a><a href="https://betty.expire.org/"><i data-o="betty"></i>Casino</a><a href="https://story.expire.org/"><i data-o="story"></i>Shop</a><a href="https://minty.expire.org/"><i data-o="minty"></i>Mint</a><a href="https://lobby.expire.org/"><i data-o="lobby"></i>Lobby</a><a class="on" href="./" aria-current="page"><i class="working"></i>GORK</a></nav><h1><b>Expire</b> Trading Bot<small id="upd"></small></h1><div id="view"><div id="ov"></div><div id="hud">…</div><button id="cls" onclick="unfocus()" style="display:none;position:absolute;right:8px;top:58px;z-index:7;font:700 14px ui-monospace,monospace;background:#d4af37;color:#000;border:0;border-radius:8px;padding:6px 12px">✕ back to office</button><div style="position:absolute;right:8px;bottom:40px;z-index:6;font:13px ui-monospace,monospace;color:#888;pointer-events:none">tap a bot for close-up</div><div id="tick"><span>loading…</span></div></div><div id="scr"><div class="sc m" id="scM"></div><div class="sc n" id="scN"></div></div></div>
 <div id="side"><div class="sec" id="wall"><h2>Paper trading · live</h2><div id="wb">loading real EBT data…</div></div><div class="sec"><h2>Team</h2><div id="team"></div></div>
 <div class="sec"><h2>Tasks</h2><div id="tasks"></div></div><div class="sec"><h2>Activity</h2><div id="log"></div></div></div>
 <script type="module">
@@ -270,6 +273,9 @@ function scCard(el,t,kind){if(t&&!t.image&&!(t.mint in LOGO))logoFill([t.mint]);
   +`<div class="ft"><span>${kind==='m'?'balance '+(+(bk.equity??bk.cash??0)).toFixed(3)+' SOL':'scans '+(st.scans||0)}</span><span>${closed.length} trades · net ${fmt(net)} SOL</span></div>`}
 function scPaint(){if(innerWidth<1000)return;const[a,b]=scPick();scCard(document.getElementById('scM'),a,'m');scCard(document.getElementById('scN'),b,'n')}
 setInterval(()=>{if(live())scI+=2;scPaint()},1800);
+</script><script>
+(()=>{const SB='https://szpczmrvthxkdaxqzlqk.supabase.co',PK='sb_publishable_yEG-pRaQg9BZg4DM9ibxCg_JLuX0hLy',QUIET=20*60e3;
+const go=async()=>{try{const r=await fetch(SB+'/rest/v1/office_summary?select=id,working,waiting,working_heard_at',{headers:{apikey:PK},cache:'no-store'});if(!r.ok)return;for(const s of await r.json()){const el=document.querySelector('#offices i[data-o="'+s.id+'"]');if(!el)continue;const fresh=s.working_heard_at&&Date.now()-Date.parse(s.working_heard_at)<=QUIET;el.className=s.waiting>0?'waiting':s.working>0?(fresh?'working':'quiet'):''}}catch(e){}};go();setInterval(go,30000)})();
 </script><button id="mus" aria-label="music" style="position:fixed;right:12px;top:calc(10px + env(safe-area-inset-top));z-index:50;min-width:48px;height:44px;border-radius:13px;border:1px solid #c5b08d77;background:#081020e9;color:#ecd3a4;font:650 14px system-ui,sans-serif;box-shadow:0 7px 21px #0007;padding:0 12px">♪ <span id="musl">tap for sound</span></button>
 <script>
 (()=>{const T=[['Across the Room','music/across-the-room.m4a'],['Southbound Sky','music/southbound-sky.m4a']];let i=0,on=localStorage.getItem('xpRadioEnabled')!=='0',started=false;
