@@ -1,15 +1,415 @@
 <!doctype html>
 <html lang="en">
 <head>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#2bff88">
+<meta name="application-name" content="Gork">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gork">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-startup-image" href="icons/splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)">
+
 <title>Gork House</title>
-<meta http-equiv="refresh" content="0; url=https://expire.org/Gork/">
-<link rel="canonical" href="https://expire.org/Gork/">
-<script>location.replace("https://expire.org/Gork/" + location.search + location.hash);</script>
-<style>html,body{margin:0;height:100%;background:#05070c;color:#e9eef7;font:16px ui-sans-serif,system-ui,sans-serif;display:flex;align-items:center;justify-content:center}a{color:#2bff88}</style>
+<style>
+:root{
+  --g:#2bff88;--g2:#16c964;--gd:rgba(43,255,136,.14);
+  --r:#ff3b4e;--r2:#d81f34;--rd:rgba(255,59,78,.14);
+  --amber:#ffb35c;--ink:#e9eef7;--mut:#8b95a8;--line:rgba(255,255,255,.09);
+  --glass:rgba(6,9,16,.28);--glass2:rgba(10,14,24,.36);
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;color:var(--ink);font:13px/1.4 var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+#bg{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:0;pointer-events:none;filter:none}
+.vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at 50% 55%,transparent 34%,rgba(0,0,0,.68) 100%)}
+.app{position:relative;z-index:2;height:100%;display:grid;grid-template-rows:52px 1fr 34px;grid-template-columns:270px 1fr 320px;gap:10px;padding:10px}
+.glass{background:var(--glass);border:1px solid var(--line);border-radius:14px;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+
+/* ---------- top bar ---------- */
+.top{grid-column:1/4;display:flex;align-items:center;gap:14px;padding:0 14px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.02em}
+.logo img{width:28px;height:28px;border-radius:50%;box-shadow:0 0 14px rgba(110,160,255,.5)}
+.logo small{display:block;font:500 10px/1 var(--mono);color:var(--mut);letter-spacing:.12em;margin-top:2px}
+.chip{font:600 10.5px/1 var(--mono);letter-spacing:.1em;padding:6px 9px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.04);white-space:nowrap}
+.chip.paper{color:var(--amber);border-color:rgba(255,179,92,.4)}
+.metrics{display:flex;gap:6px;margin:0 auto;padding:5px;border-radius:99px;background:rgba(0,0,0,.4);border:1px solid var(--line)}
+.metrics span{display:flex;align-items:center;gap:6px;padding:4px 10px;font:600 11.5px/1 var(--mono);color:var(--mut)}
+.metrics b{color:var(--ink)}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+.d-working{background:var(--g);box-shadow:0 0 8px var(--g);animation:blink 1.1s infinite}
+.d-waiting{background:var(--r);box-shadow:0 0 8px var(--r);animation:pulseR 1.6s infinite}
+.d-ready{background:#7fd4ff;box-shadow:0 0 6px #7fd4ff}
+.d-held{background:#8b95a8}
+.d-empty{background:transparent;border:1px dashed #667}
+.clock{font:600 13px/1 var(--mono);color:var(--ink)}
+.clock small{color:var(--mut);font-size:10px;margin-left:4px}
+@keyframes blink{50%{opacity:.35}}
+@keyframes pulseR{0%,100%{box-shadow:0 0 4px var(--r)}50%{box-shadow:0 0 14px var(--r),0 0 2px var(--r)}}
+
+/* ---------- left ---------- */
+.left{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.sec{padding:12px 12px 6px;font:700 10.5px/1 var(--mono);letter-spacing:.14em;color:var(--mut);display:flex;justify-content:space-between;align-items:center}
+.roster{padding:0 6px 8px;display:flex;flex-direction:column;gap:6px;overflow:auto;max-height:42vh}
+.ritem{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:linear-gradient(145deg,rgba(255,255,255,.11),rgba(255,255,255,.03) 55%,rgba(8,12,22,.35));box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(0,0,0,.25),0 8px 20px rgba(0,0,0,.28);text-align:left;cursor:pointer;transition:transform .14s ease,border-color .14s,box-shadow .14s,background .14s;--c:#3ee88a}
+.ritem:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--c) 50%,rgba(255,255,255,.25));background:linear-gradient(145deg,rgba(255,255,255,.16),rgba(255,255,255,.05) 55%,rgba(8,12,22,.4));box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 12px 26px rgba(0,0,0,.35),0 0 18px color-mix(in srgb,var(--c) 22%,transparent)}
+.ritem:active{transform:scale(.985)}
+.ritem.sel{border-color:rgba(43,255,136,.7);background:linear-gradient(145deg,rgba(43,255,136,.18),rgba(255,255,255,.04));box-shadow:inset 0 0 0 1px rgba(43,255,136,.35),inset 0 1px 0 rgba(255,255,255,.18),0 0 22px rgba(43,255,136,.22)}
+.ritem.owner{--c:#ffd59a}
+.ritem .ric{width:28px;height:28px;border-radius:9px;flex:none;display:inline-grid;place-items:center;background:color-mix(in srgb,var(--c) 22%,rgba(0,0,0,.4));border:1px solid color-mix(in srgb,var(--c) 42%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 0 12px color-mix(in srgb,var(--c) 28%,transparent);color:var(--c);font-size:14px;line-height:1}
+.ritem .ric svg{width:15px;height:15px;display:block;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.ritem .fl{font:700 9.5px/1 var(--mono);color:var(--mut);width:28px;letter-spacing:.04em}
+.ritem .nm{flex:1;font-weight:650;font-size:12.5px;letter-spacing:.01em}
+.ritem .st{font:700 9.5px/1 var(--mono);letter-spacing:.06em;padding:4px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.28)}
+.ritem .st.working{color:var(--g);border-color:rgba(43,255,136,.35);background:rgba(43,255,136,.1)}
+.ritem .st.waiting{color:var(--r);border-color:rgba(255,59,78,.4);background:rgba(255,59,78,.12)}
+.ritem .st.ready{color:#7fd4ff;border-color:rgba(127,212,255,.35);background:rgba(127,212,255,.1)}
+.ritem .st.owner{color:#ffd59a;border-color:rgba(255,213,154,.4);background:rgba(255,213,154,.1)}
+.ritem .st.held,.ritem .st.empty{color:var(--mut)}
+.st.working{color:var(--g)}.st.waiting{color:var(--r)}.st.ready{color:#7fd4ff}.st.empty,.st.held{color:var(--mut)}
+.queue{flex:1;overflow:auto;padding:0 10px 10px;display:flex;flex-direction:column;gap:9px}
+.qcard{position:relative;padding:10px 11px 10px 14px;border-radius:10px;background:var(--glass2);border:1px solid rgba(255,59,78,.28);border-left:5px solid var(--r);animation:cardPulse 2.4s infinite}
+.qcard.held{border-left-color:#59627a;border-color:var(--line);animation:none;opacity:.75}
+.qcard h4{margin:0 0 3px;font-size:12.5px;display:flex;justify-content:space-between;align-items:center}
+.qcard h4 em{font:600 9.5px/1 var(--mono);font-style:normal;color:var(--r);letter-spacing:.08em}
+.qcard.held h4 em{color:var(--mut)}
+.qcard p{margin:0 0 8px;color:#c4cbd8;font-size:12px}
+.qcard .acts{display:flex;gap:6px;flex-wrap:wrap}
+@keyframes cardPulse{0%,100%{box-shadow:0 0 0 rgba(255,59,78,0)}50%{box-shadow:0 0 18px rgba(255,59,78,.28)}}
+.empty-q{color:var(--mut);font-size:12px;text-align:center;padding:16px 6px;border:1px dashed var(--line);border-radius:10px}
+
+/* ---------- buttons: red + green, flicker while that bot is working ---------- */
+.btn{border:0;border-radius:7px;padding:6px 11px;font:700 11.5px/1 var(--sans);letter-spacing:.02em;transition:transform .12s,filter .2s}
+.btn:active{transform:scale(.96)}
+.btn.go{background:var(--g);color:#032412;box-shadow:0 0 12px rgba(43,255,136,.45)}
+.btn.go:hover{filter:brightness(1.15)}
+.btn.no{background:var(--r);color:#fff;box-shadow:0 0 12px rgba(255,59,78,.4)}
+.btn.no:hover{filter:brightness(1.12)}
+.btn.ghost{background:rgba(255,255,255,.08);color:#cfd6e3}
+.flick .btn.go,.btn.go.flick{animation:flickG 1.3s steps(1,end) infinite}
+.flick .btn.no,.btn.no.flick{animation:flickR 1.7s steps(1,end) infinite}
+@keyframes flickG{0%{filter:brightness(1);box-shadow:0 0 14px var(--g)}7%{filter:brightness(.45);box-shadow:none}11%{filter:brightness(1.35);box-shadow:0 0 22px var(--g)}30%{filter:brightness(1)}48%{filter:brightness(.7)}52%{filter:brightness(1.25);box-shadow:0 0 20px var(--g)}80%{filter:brightness(.9)}}
+@keyframes flickR{0%{filter:brightness(1);box-shadow:0 0 12px var(--r)}9%{filter:brightness(.5);box-shadow:none}13%{filter:brightness(1.3);box-shadow:0 0 20px var(--r)}40%{filter:brightness(1)}62%{filter:brightness(.6)}66%{filter:brightness(1.2)}}
+
+/* ---------- center: one tower, one floor plate per desk. Roof sits on the top desk. ---------- */
+.center{position:relative;overflow:hidden;min-height:0;background:rgba(3,5,10,.04);backdrop-filter:none;-webkit-backdrop-filter:none}
+.ctool{position:absolute;top:10px;left:12px;right:12px;display:flex;gap:8px;align-items:center;z-index:5}
+.ctool .crumb{font:600 11px/1 var(--mono);color:var(--mut);letter-spacing:.08em}
+.ctool .crumb b{color:var(--ink)}
+.ctool .sp{flex:1}
+.wrap{position:absolute;inset:0}
+.building{position:absolute;top:0;left:50%;width:600px;margin-left:-300px;transform-origin:0 0;transition:transform .8s cubic-bezier(.2,.7,.2,1);padding-top:8px;--steel:linear-gradient(90deg,#15181d,#3d434c 35%,#5d646e 50%,#2c3037 70%,#121418)}
+/* roof: parapet, mechanical room with louvers, mast + aviation beacon, full width of the top desk */
+.crown{position:relative;height:52px;margin:0}
+.crown .mast{position:absolute;left:62%;bottom:16px;width:3px;height:30px;background:linear-gradient(90deg,#6c727c,#c4cad3,#4a4f57)}
+.crown .mast::before{content:"";position:absolute;left:-5px;top:10px;width:13px;height:2px;background:#9aa0aa}
+.crown .beacon{position:absolute;left:62%;bottom:44px;width:7px;height:7px;margin-left:-2px;border-radius:50%;background:#ff4a4a;box-shadow:0 0 10px 3px rgba(255,60,60,.8);animation:blink 1.8s steps(1,end) infinite}
+.crown .mech{position:absolute;left:18%;right:18%;bottom:8px;height:16px;background:repeating-linear-gradient(#3b4048 0 2px,#23272d 2px 5px);border:1px solid #4a5059;box-shadow:inset 0 -6px 10px rgba(0,0,0,.5)}
+.crown .parapet{position:absolute;left:0;right:0;bottom:0;height:12px;background:linear-gradient(#8a8f96,#5a5e65 40%,#33363b);box-shadow:0 2px 0 #1b1d21}
+/* a level = steel column | single floor plate | service core strip | steel column */
+.tlvl{position:relative;display:grid;grid-template-columns:12px 1fr 40px 12px;cursor:pointer;transition:filter .3s;box-shadow:0 0 40px rgba(255,190,120,.05)}
+.tlvl::before,.tlvl::after{content:"";grid-row:1;background:var(--steel)}
+.tlvl::before{grid-column:1}.tlvl::after{grid-column:4}
+.tlvl .room{grid-column:2;grid-row:1}
+.tlvl .core{grid-column:3;grid-row:1}
+.tlvl:hover{filter:brightness(1.1)}
+.tlvl.dim{filter:brightness(.42) saturate(.55)}
+.tlvl.ph{margin:0}
+/* concrete slab edge between levels, with ambient occlusion */
+.slab{position:relative;height:11px;background:linear-gradient(#9a9ea4,#6d7178 30%,#45484e 70%,#2a2c30);box-shadow:0 4px 8px rgba(0,0,0,.55);z-index:2}
+.slab.ph{margin:0 46px}
+.terrace{position:relative;height:16px;z-index:2}
+.terrace .deck{position:absolute;left:0;right:0;bottom:0;height:9px;background:linear-gradient(#a7a29a,#6f6b65 50%,#3a3835);box-shadow:0 4px 8px rgba(0,0,0,.5)}
+.terrace .rail{position:absolute;bottom:9px;height:14px;width:40px;background:linear-gradient(rgba(170,210,235,.18),rgba(170,210,235,.06));border-top:2px solid #b9c0c9;border-left:1px solid rgba(255,255,255,.2);border-right:1px solid rgba(255,255,255,.2)}
+.terrace .rail.l{left:4px}.terrace .rail.r{right:4px}
+/* service core: concrete with a lit elevator cab */
+.core{position:relative;background:linear-gradient(90deg,#4b4e53,#6a6d72 40%,#55585d 60%,#3a3c40);overflow:hidden;border-left:1px solid #22252a}
+.core::before{content:"";position:absolute;left:9px;right:9px;top:10px;bottom:0;background:linear-gradient(#0b0e13,#141922);border:1px solid #2a2f37}
+.core::after{content:"";position:absolute;left:19px;top:0;bottom:0;width:2px;background:linear-gradient(transparent,rgba(43,255,136,.55),transparent);background-size:100% 46px;animation:shaft 1.6s linear infinite}
+@keyframes shaft{to{background-position:0 46px}}
+.core span{position:absolute;top:4px;left:0;right:0;text-align:center;font:800 9px/1 var(--mono);color:#e7e9ec;letter-spacing:.04em;z-index:1;text-shadow:0 1px 0 #000}
+/* one office floor plate */
+.room{position:relative;height:120px;overflow:hidden;background:#17120d}
+.tlvl.ph .room{height:168px}
+.room .ceil{position:absolute;left:0;right:0;top:0;height:13px;background:linear-gradient(#2c2925,#1a1714);box-shadow:0 2px 3px rgba(0,0,0,.6)}
+.room .ceil::after{content:"";position:absolute;left:0;right:0;bottom:1px;height:3px;background:repeating-linear-gradient(90deg,transparent 0 34px,#fff4dc 34px 74px,transparent 74px 112px);filter:drop-shadow(0 0 4px rgba(255,226,170,.9))}
+.room .wall{position:absolute;left:0;right:0;top:13px;bottom:24px;background:repeating-linear-gradient(90deg,transparent 0 119px,rgba(0,0,0,.18) 119px 120px),radial-gradient(ellipse 60% 85% at 20% 0%,rgba(255,214,150,.42),transparent 70%),radial-gradient(ellipse 60% 85% at 68% 0%,rgba(255,214,150,.38),transparent 70%),linear-gradient(#6a5844,#4a3c2e 60%,#30271e)}
+.room .flr{position:absolute;left:0;right:0;bottom:0;height:24px;background:linear-gradient(rgba(255,220,170,.10),transparent 40%),repeating-linear-gradient(90deg,#3c3631 0 46px,#37312c 46px 92px),#38322d;box-shadow:inset 0 6px 8px rgba(0,0,0,.45)}
+.room .base{position:absolute;left:0;right:0;bottom:24px;height:3px;background:#211b16}
+/* state tint: green monitor glow / red rim light */
+.room.s-working .wall{box-shadow:inset 0 -30px 40px -20px rgba(43,255,136,.22)}
+.room.s-waiting .wall{box-shadow:inset 0 0 0 2px rgba(255,59,78,.35),inset 0 -34px 44px -20px rgba(255,59,78,.35)}
+.room.s-held .wall{filter:saturate(.35) brightness(.7)}
+/* curtain wall glass: mullions, transoms, reflections (above everything inside, click-through) */
+.room .glass{position:absolute;inset:0;z-index:8;pointer-events:none;
+ background:linear-gradient(112deg,rgba(255,255,255,.10) 0 9%,transparent 9% 31%,rgba(255,255,255,.06) 31% 35%,transparent 35% 70%,rgba(255,255,255,.05) 70% 72%,transparent 72%),
+ linear-gradient(rgba(150,190,225,.07),rgba(40,70,110,.10)),
+ repeating-linear-gradient(90deg,rgba(18,22,28,.95) 0 3px,rgba(160,170,182,.35) 3px 4px,transparent 4px 88px);
+ box-shadow:inset 0 0 0 1px rgba(0,0,0,.6)}
+.room .glass::after{content:"";position:absolute;left:0;right:0;top:46%;height:2px;background:rgba(20,24,30,.75);border-bottom:1px solid rgba(170,180,192,.25)}
+.tlvl.ph .room .glass::after{top:58%}
+/* labels sit on the glass like vinyl signage */
+.tag{position:absolute;top:17px;left:10px;z-index:9;display:flex;gap:7px;align-items:center}
+.tag .fln{font:800 11px/1 var(--mono);padding:4px 7px;border-radius:4px;background:rgba(0,0,0,.62);border:1px solid rgba(255,255,255,.16);letter-spacing:.06em}
+.room.s-working .tag .fln{border-color:rgba(43,255,136,.6);color:var(--g)}
+.room.s-waiting .tag .fln{border-color:rgba(255,59,78,.7);color:#ff8a96;background:rgba(80,0,10,.6)}
+.room.s-owner .tag .fln{border-color:rgba(255,214,150,.75);color:#ffe2b0;background:rgba(40,24,6,.7);font-size:12px}
+.tag .rl{font:500 10px/1 var(--mono);color:#e4d6c3;text-shadow:0 1px 2px #000;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rstate{position:absolute;top:17px;right:10px;z-index:9;font:700 9.5px/1 var(--mono);letter-spacing:.08em;display:flex;align-items:center;gap:5px;padding:3px 6px;border-radius:4px;background:rgba(0,0,0,.55)}
+.d-owner{background:#ffd59a;box-shadow:0 0 8px #ffd59a}
+.st.owner{color:#ffd59a}
+/* furniture: real-looking workstation, task chair, planter, wall screen, cabinet */
+.wk{position:absolute;bottom:24px;width:96px;height:34px;z-index:3}
+.wk .top{position:absolute;left:0;right:0;top:14px;height:4px;border-radius:1px;background:linear-gradient(#e2d2b8,#b59b77);box-shadow:0 2px 2px rgba(0,0,0,.5)}
+.wk .leg{position:absolute;top:18px;width:3px;height:16px;background:linear-gradient(90deg,#2a2c30,#6b7078,#2a2c30)}
+.wk .leg.a{left:6px}.wk .leg.b{right:6px}
+.wk .mon{position:absolute;left:30px;top:-6px;width:34px;height:19px;background:#0b0e12;border:2px solid #1c1f24;border-radius:2px;box-shadow:0 0 10px rgba(140,200,255,.25)}
+.wk .mon::before{content:"";position:absolute;left:50%;bottom:-6px;width:3px;height:5px;margin-left:-1px;background:#2a2d32}
+.wk .mon::after{content:"";position:absolute;inset:2px;background:linear-gradient(transparent 0 28%,rgba(160,210,255,.6) 28% 36%,transparent 36% 56%,rgba(160,210,255,.4) 56% 63%,transparent 63%)}
+.s-working .wk .mon{box-shadow:0 0 14px rgba(43,255,136,.55)}
+.s-working .wk .mon::after{background:repeating-linear-gradient(transparent 0 3px,rgba(43,255,136,.75) 3px 4px);animation:code 1s linear infinite}
+.s-waiting .wk .mon{box-shadow:0 0 14px rgba(255,59,78,.6)}
+.s-waiting .wk .mon::after{background:rgba(255,59,78,.55);animation:blink 1s infinite}
+@keyframes code{to{background-position:0 -16px}}
+.wk .lamp{position:absolute;left:74px;top:2px;width:2px;height:12px;background:#777;transform:rotate(14deg)}
+.wk .lamp::after{content:"";position:absolute;top:-3px;left:-5px;width:10px;height:4px;border-radius:4px 4px 0 0;background:#3a3d42;box-shadow:0 6px 10px 2px rgba(255,220,160,.35)}
+.chair{position:absolute;bottom:24px;width:22px;height:30px;z-index:2}
+.chair .bk{position:absolute;left:3px;top:0;width:15px;height:15px;border-radius:5px 5px 2px 2px;background:linear-gradient(#2c2f35,#17191d)}
+.chair .seat{position:absolute;left:0;top:15px;width:22px;height:4px;border-radius:2px;background:#22252a}
+.chair .post{position:absolute;left:10px;top:19px;width:2px;height:8px;background:#6a6f77}
+.chair .ft{position:absolute;left:1px;bottom:0;width:20px;height:3px;border-radius:2px;background:#33363b}
+.planter{position:absolute;bottom:24px;width:16px;height:46px;z-index:2}
+.planter::before{content:"";position:absolute;bottom:0;left:1px;width:14px;height:13px;background:linear-gradient(90deg,#2b2b2b,#4f4f4f,#262626);border-radius:1px}
+.planter::after{content:"";position:absolute;bottom:12px;left:-9px;width:34px;height:36px;background:radial-gradient(ellipse 30% 45% at 30% 55%,#2e5e33 60%,transparent 62%),radial-gradient(ellipse 30% 48% at 68% 45%,#3b7340 60%,transparent 62%),radial-gradient(ellipse 26% 40% at 50% 22%,#285430 60%,transparent 62%)}
+.cab{position:absolute;bottom:24px;width:26px;height:26px;background:linear-gradient(90deg,#8e9196,#b4b7bc 40%,#7d8085);border-radius:1px;box-shadow:inset 0 -9px 0 -8px #555,inset 0 -18px 0 -17px #555}
+.screen{position:absolute;top:28px;width:64px;height:34px;background:#06090e;border:2px solid #15181d;box-shadow:0 0 14px rgba(120,180,255,.2);overflow:hidden}
+.screen.chart::after{content:"";position:absolute;inset:0;background:linear-gradient(135deg,transparent 45%,var(--g) 46% 50%,transparent 51%),linear-gradient(45deg,transparent 60%,var(--r) 61% 64%,transparent 65%);background-size:22px 34px;animation:tick 3s linear infinite}
+@keyframes tick{to{background-position:-44px 0}}
+.screen.doc{background:#e9e6df;border-color:#9a948a}
+.screen.doc::after{content:"";position:absolute;inset:5px;background:repeating-linear-gradient(transparent 0 4px,#8d9bb3 4px 5px)}
+.screen.globe::after{content:"";position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:url(expire-bg/assets/brand/e-globe-av.webp) center/cover;animation:spinS 18s linear infinite}
+@keyframes spinS{to{transform:rotate(360deg)}}
+/* owner styling kept unused so an old saved floor cannot restyle the tower */
+.room.s-owner .wall{background:radial-gradient(ellipse 45% 80% at 30% 0%,rgba(255,206,140,.6),transparent 70%),radial-gradient(ellipse 45% 80% at 75% 0%,rgba(255,206,140,.5),transparent 70%),linear-gradient(#7a5a3a,#56402a 55%,#3a2a1b)}
+.room.s-owner .flr{background:linear-gradient(rgba(255,220,170,.18),transparent 50%),repeating-linear-gradient(90deg,#5a3c25 0 30px,#4f3420 30px 60px)}
+.pend{position:absolute;top:13px;width:2px;height:24px;background:#555;z-index:3}
+.pend::after{content:"";position:absolute;bottom:-6px;left:-8px;width:18px;height:8px;border-radius:9px 9px 2px 2px;background:linear-gradient(#c8a46a,#7d6236);box-shadow:0 10px 26px 8px rgba(255,200,120,.45)}
+.exdesk{position:absolute;bottom:24px;width:150px;height:40px;z-index:4}
+.exdesk .top{position:absolute;left:0;right:0;top:16px;height:6px;border-radius:1px;background:linear-gradient(#7a4f2e,#4e301a);box-shadow:0 3px 4px rgba(0,0,0,.6)}
+.exdesk .pedestal{position:absolute;top:22px;width:34px;height:18px;background:linear-gradient(90deg,#3d2616,#5c3a22,#3d2616)}
+.exdesk .pedestal.a{left:4px}.exdesk .pedestal.b{right:4px}
+.exdesk .m{position:absolute;top:-6px;width:36px;height:21px;background:#0b0e12;border:2px solid #1c1f24;box-shadow:0 0 12px rgba(255,214,150,.3)}
+.exdesk .m::after{content:"";position:absolute;inset:2px;background:linear-gradient(transparent 0 30%,rgba(255,226,180,.55) 30% 38%,transparent 38% 58%,rgba(43,255,136,.5) 58% 64%,transparent 64%)}
+.exdesk .m.a{left:38px}.exdesk .m.b{left:78px}
+.human{position:absolute;bottom:24px;width:40px;height:62px;z-index:5;animation:breathe 4.5s ease-in-out infinite;transform-origin:bottom center}
+.human .hd{position:absolute;left:12px;top:0;width:16px;height:18px;border-radius:48% 48% 44% 44%;background:radial-gradient(circle at 60% 35%,#3a2c22,#14100c 70%)}
+.human .nk{position:absolute;left:17px;top:16px;width:6px;height:5px;background:#1b1510}
+.human .sh{position:absolute;left:3px;top:20px;width:34px;height:24px;border-radius:12px 12px 4px 4px;background:linear-gradient(#22252b,#111317)}
+.human .lchair{position:absolute;left:-3px;top:10px;width:46px;height:52px;border-radius:10px 10px 4px 4px;background:linear-gradient(#3a2418,#1d120b);z-index:-1}
+@keyframes breathe{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.015)}}
+.sofa{position:absolute;bottom:24px;width:84px;height:24px;z-index:2}
+.sofa::before{content:"";position:absolute;left:0;right:0;top:0;height:13px;border-radius:5px 5px 2px 2px;background:linear-gradient(#cdbfa8,#a39580)}
+.sofa::after{content:"";position:absolute;left:-3px;right:-3px;top:11px;height:11px;border-radius:3px;background:linear-gradient(#b8aa93,#8a7d69)}
+.wscreen{position:absolute;top:34px;width:118px;height:50px;background:#06090e;border:3px solid #241a12;padding:5px 6px;font:700 8.5px/1.35 var(--mono);color:#ffe2b0;z-index:3;box-shadow:0 0 18px rgba(255,190,120,.25)}
+.wscreen b{color:#ff8a96}.wscreen i{color:var(--g);font-style:normal}
+/* base plinth + street (not a level) */
+.plinth{height:22px;margin:0 -10px;background:linear-gradient(#5d6066,#2f3135);display:flex;align-items:center;justify-content:center;font:800 9px/1 var(--mono);letter-spacing:.4em;color:#cfd3d9;box-shadow:0 6px 18px rgba(0,0,0,.6)}
+.ground{height:10px;margin:0 -60px;background:linear-gradient(#1b2030,#05070b);border-radius:4px}
+
+/* ---------- bots (sprites kept, scaled into the real floor plate) ---------- */
+.bot{position:absolute;bottom:24px;left:28%;width:40px;height:56px;z-index:6;--bc:#7fd4ff}
+.bot .body,.bot .flip{position:absolute;inset:0}
+.bot .mon{position:absolute;top:0;left:2px;width:36px;height:28px;border-radius:7px;background:var(--bc);box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+.bot .scr{position:absolute;inset:4px;border-radius:4px;background:#07101a}
+.bot .eye{position:absolute;top:6px;width:5px;height:7px;border-radius:2px;background:var(--face,#9ff)}
+.bot .eye.l{left:6px}.bot .eye.r{right:6px}
+.bot .mouth{position:absolute;bottom:3px;left:50%;width:8px;height:3px;margin-left:-4px;border-radius:0 0 4px 4px;background:var(--face,#9ff)}
+.bot .torso{position:absolute;top:29px;left:9px;width:22px;height:14px;border-radius:4px;background:var(--bc);filter:brightness(.8)}
+.bot .leg{position:absolute;top:43px;width:5px;height:12px;border-radius:2px;background:#cfd6e3}
+.bot .leg.a{left:13px}.bot .leg.b{right:13px}
+.bot .shadow{position:absolute;bottom:-3px;left:6px;width:28px;height:5px;border-radius:50%;background:rgba(0,0,0,.5)}
+.bot .eye{animation:eyeblink 4s infinite}
+@keyframes eyeblink{0%,94%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+.s-working .bot{animation:patrol 10s ease-in-out infinite;--face:#7dffb8}
+.s-working .bot .body{animation:hop .45s ease-in-out infinite}
+.s-working .bot .leg.a{animation:stepA .45s infinite}
+.s-working .bot .leg.b{animation:stepB .45s infinite}
+.s-working .bot .mon{box-shadow:0 0 14px rgba(43,255,136,.55),inset 0 -3px 0 rgba(0,0,0,.25)}
+.s-working .bot .flip{animation:face 10s steps(1,end) infinite}
+@keyframes patrol{0%{left:12%}38%{left:66%}50%{left:66%}88%{left:12%}100%{left:12%}}
+@keyframes face{0%{transform:scaleX(1)}39%{transform:scaleX(-1)}89%{transform:scaleX(1)}}
+@keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes stepA{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes stepB{0%,100%{transform:translateY(-3px)}50%{transform:translateY(0)}}
+.s-waiting .bot{--face:#ff8a96}
+.s-waiting .bot .mon{animation:redpulse 1.5s ease-in-out infinite}
+.s-waiting .bot .body{animation:sway 2.4s ease-in-out infinite}
+@keyframes redpulse{0%,100%{box-shadow:0 0 4px rgba(255,59,78,.4),inset 0 -3px 0 rgba(0,0,0,.25)}50%{box-shadow:0 0 22px rgba(255,59,78,.95),inset 0 -3px 0 rgba(0,0,0,.25)}}
+@keyframes sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.s-ready .bot{--face:#bfe9ff}
+.s-ready .bot .body{animation:hop 2.8s ease-in-out infinite}
+.s-held .bot{--face:#8b95a8;filter:saturate(.3) brightness(.8)}
+.bubble{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);white-space:nowrap;font:700 10px/1 var(--mono);padding:5px 8px;border-radius:8px;z-index:9;pointer-events:none}
+.bubble::after{content:"";position:absolute;bottom:-5px;left:50%;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top-color:inherit}
+.bubble.wait{background:var(--r);color:#fff;border-color:var(--r);animation:bob 1.6s ease-in-out infinite}
+.bubble.wait::after{border-top-color:var(--r)}
+.bubble.work{background:rgba(3,20,10,.92);color:var(--g);border:1px solid var(--g)}
+.bubble.work::after{border-top-color:var(--g)}
+.bubble.ok{background:#0b2233;color:#bfe9ff;border:1px solid #7fd4ff}
+.bubble.ok::after{border-top-color:#7fd4ff}
+.bubble .pb{display:block;margin-top:4px;height:3px;border-radius:2px;background:rgba(43,255,136,.2);overflow:hidden}
+.bubble .pb i{display:block;height:100%;background:var(--g);width:var(--p,30%);transition:width .6s}
+@keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-4px)}}
+/* decision packets ride the core up to the roof */
+.pkt{position:absolute;width:6px;height:6px;border-radius:2px;background:var(--g);box-shadow:0 0 8px var(--g);z-index:12;pointer-events:none;animation:pkt 1.9s ease-in forwards}
+@keyframes pkt{from{opacity:1}to{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.4)}}
+
+/* ---------- right ---------- */
+.right{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.rhead{padding:12px 14px 8px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)}
+.rhead h3{margin:0;font-size:14px;display:flex;align-items:center;gap:8px}
+.rhead small{font:600 10px/1 var(--mono);color:var(--mut)}
+.rbody{flex:1;overflow:auto;padding:10px 12px;display:flex;flex-direction:column;gap:9px}
+.fcard{padding:9px 10px;border-radius:10px;background:var(--glass2);border:1px solid var(--line);border-left:3px solid #39404f}
+.fcard.working{border-left-color:var(--g)}.fcard.waiting{border-left-color:var(--r)}.fcard.ready{border-left-color:#7fd4ff}
+.fcard .h{display:flex;justify-content:space-between;align-items:center;font:800 11px/1 var(--mono);letter-spacing:.05em;margin-bottom:6px}
+.fcard .badge{font:700 9px/1 var(--mono);padding:3px 6px;border-radius:4px;letter-spacing:.06em}
+.badge.working{background:var(--gd);color:var(--g)}.badge.waiting{background:var(--rd);color:#ff8a96}.badge.ready{background:rgba(127,212,255,.12);color:#7fd4ff}.badge.held,.badge.empty{background:rgba(255,255,255,.06);color:var(--mut)}
+.fcard pre{margin:0;font:12px/1.45 var(--mono);color:#c8d0dd;white-space:pre-wrap}
+.file{display:inline-block;margin-top:6px;font:600 10px/1 var(--mono);color:#9fb0c8;padding:3px 6px;border-radius:4px;background:rgba(255,255,255,.06)}
+.det h2{margin:2px 0 2px;font-size:18px}
+.det .role{color:var(--mut);margin-bottom:8px}
+.det .sum{padding:10px;border-radius:10px;background:var(--glass2);border:1px solid var(--line);margin-bottom:10px}
+.logs{font:11.5px/1.5 var(--mono);color:#aeb8c9;background:rgba(0,0,0,.45);border:1px solid var(--line);border-radius:10px;padding:8px 10px;max-height:260px;overflow:auto}
+.logs div{white-space:pre-wrap}
+.logs .t{color:#5f6b82}.logs .g{color:var(--g)}.logs .r{color:#ff8a96}
+
+/* ---------- footer ---------- */
+.foot{grid-column:1/4;display:flex;align-items:center;gap:12px;padding:0 12px;font:600 11px/1 var(--mono);color:var(--mut)}
+.foot .sends{color:var(--g)}
+.kill{display:flex;align-items:center;gap:8px;margin-left:auto}
+.switch{width:38px;height:20px;border-radius:99px;border:0;background:#3a1016;position:relative;box-shadow:inset 0 0 0 1px rgba(255,59,78,.6)}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--r);box-shadow:0 0 8px var(--r);transition:left .2s}
+.switch.on::after{left:21px}
+body.killed .s-working .bot,body.killed .s-working .bot *,body.killed .flick .btn,body.killed .btn.flick{animation-play-state:paused!important}
+body.killed .building{filter:grayscale(.6)}
+.toast{position:fixed;left:50%;bottom:56px;transform:translateX(-50%) translateY(20px);opacity:0;z-index:50;padding:10px 16px;border-radius:10px;background:rgba(3,20,10,.92);border:1px solid var(--g);color:var(--g);font:700 12.5px/1.2 var(--sans);box-shadow:0 0 24px rgba(43,255,136,.35);transition:.3s;pointer-events:none}
+.toast.red{background:rgba(30,4,8,.92);border-color:var(--r);color:#ff8a96;box-shadow:0 0 24px rgba(255,59,78,.35)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:8px}
+@media(max-width:1180px){.app{grid-template-columns:230px 1fr 270px}}
+
+/* ---------- XP / levels / achievements (local illustrative) ---------- */
+.xp-hud{display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border-radius:99px;background:rgba(0,0,0,.42);border:1px solid rgba(43,255,136,.28);min-width:168px;flex:none}
+.xp-hud .lvl{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:800 11px/1 var(--mono);color:#032412;background:var(--g);box-shadow:0 0 12px rgba(43,255,136,.45)}
+.xp-hud .meta{flex:1;min-width:0}
+.xp-hud .meta .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font:700 10px/1 var(--mono);letter-spacing:.06em;color:var(--mut);margin-bottom:3px}
+.xp-hud .meta .row b{color:var(--g)}
+.xp-bar{height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.xp-bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--g2),var(--g));box-shadow:0 0 8px rgba(43,255,136,.55);transition:width .35s ease}
+.ach-strip{display:flex;align-items:center;gap:4px;flex:none}
+.ach{width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:rgba(255,255,255,.04);display:grid;place-items:center;font-size:11px;opacity:.35;filter:grayscale(1);cursor:default;position:relative}
+.ach.on{opacity:1;filter:none;border-color:rgba(43,255,136,.45);background:rgba(43,255,136,.1);box-shadow:0 0 10px rgba(43,255,136,.25)}
+.ach[title]:hover::after{content:attr(title);position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);white-space:nowrap;padding:4px 7px;border-radius:6px;background:rgba(3,8,16,.95);border:1px solid var(--line);font:600 10px/1 var(--mono);color:var(--ink);z-index:20;pointer-events:none}
+.toast.ach{border-color:#7fd4ff;color:#bfe9ff;background:rgba(5,16,28,.94);box-shadow:0 0 24px rgba(127,212,255,.35)}
+.toast.xp{border-color:var(--amber);color:var(--amber);background:rgba(24,14,4,.94);box-shadow:0 0 24px rgba(255,179,92,.3)}
+@media(prefers-reduced-motion:reduce){.xp-bar i{transition:none}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:0s!important};.xp-bar i{transition:none}}
+
+/* ---- expire.org terminal agent looks (from terminal.expire.org/v5 Swarm + agent cards) ---- */
+:root{
+  --ebt-cy:#4ee3f5;--ebt-pk:#f0457f;--ebt-pu:#a87cf0;--ebt-gr:#3ee88a;--ebt-am:#f5b54a;--ebt-bl:#7c9cff;
+  --ebt-ln:#211c33;--ebt-pn:#0e0b1a;--ebt-mu:#7f7a95;
+}
+.ebt-face{position:absolute;bottom:18%;left:28%;width:52px;height:52px;z-index:4;filter:drop-shadow(0 4px 10px rgba(0,0,0,.55))}
+.ebt-face svg{width:100%;height:100%;display:block}
+.s-working .ebt-face{animation:patrol 9s ease-in-out infinite}
+.s-waiting .ebt-face{animation:redpulse 1.5s ease-in-out infinite}
+.ebt-badge{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);z-index:5;font:700 8px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.08em;padding:3px 6px;border-radius:4px;border:1px solid;white-space:nowrap}
+.ebt-badge.on{background:rgba(10,42,22,.85);color:var(--ebt-gr);border-color:rgba(62,232,138,.5)}
+.ebt-badge.wait{background:rgba(42,13,13,.85);color:#ff8a96;border-color:rgba(240,69,127,.45)}
+.ebt-badge.ready{background:rgba(14,30,50,.85);color:var(--ebt-cy);border-color:rgba(78,227,245,.4)}
+.ritem .ebt-ic{display:none}
+.fcard .ebt-ic{width:22px;height:22px;border-radius:6px;display:inline-grid;place-items:center;background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--c);font-size:11px;margin-right:6px}
+
+</style>
+<link rel="stylesheet" href="css/hq-10x.css?v=silver1">
 </head>
 <body>
-<p>Opening the <a href="https://expire.org/Gork/">Gork House</a>…</p>
+<iframe id="bg" src="expire-bg/gta-loading-bg.html?v=gta1" title="Expire GTA loading screen city and globe" aria-hidden="true" tabindex="-1"></iframe>
+<div class="vignette"></div>
+
+<div class="app">
+  <header class="top glass">
+    <div class="logo"><img src="expire-bg/assets/brand/e-globe-av.webp" alt=""><div>Gork House<small>10X · NIGHT SHIFT · HOME OFFICE</small></div></div>
+    <span class="chip paper">PAPER / DRAFT ONLY</span>
+    <a class="chip" id="approvalsLink" href="/terminal/" target="expire-terminal" title="Persistent Approvals — expire.org/terminal path (local)" style="text-decoration:none;color:var(--g);border-color:rgba(43,255,136,.45)">TERMINAL</a>
+    <div class="metrics" id="metrics"></div>
+    <div class="xp-hud" id="xphud" title="Illustrative local XP — Approve/Hold only">
+      <span class="lvl" id="xplvl">1</span>
+      <div class="meta"><div class="row"><span>LVL <b id="xplvl2">1</b> · <em id="xprank" class="rank">INTERN</em></span><span><b id="xppoints">0</b> XP</span></div><div class="xp-bar"><i id="xpbar" style="width:0%"></i></div></div>
+    </div>
+    <div class="ach-strip" id="achstrip" aria-label="Achievements"></div>
+    <div class="ticker" id="ticker"><span>◎ SOL <b>…</b></span></div>
+    <span class="chip" style="color:var(--g);border-color:rgba(43,255,136,.35)">0 external sends</span>
+    <div class="clock" id="clock"></div>
+  </header>
+
+  <aside class="left glass">
+    <div class="sec"><span>TOWER · TOP → BOTTOM</span><span id="rcount"></span></div>
+    <div class="roster" id="roster"></div>
+    <div class="sec" style="border-top:1px solid var(--line);padding-top:12px"><span style="color:#ff8a96">WAITING ON YOU</span><span id="qcount"></span></div>
+    <div class="queue" id="queue"></div>
+  </aside>
+
+  <main class="center glass">
+    <div class="ctool">
+      <span class="crumb" id="crumb"></span><span class="sp"></span>
+      <button class="btn ghost" id="newtask" title="Create a task — adds a floor to the tower">＋ Task floor</button>
+      <button class="btn ghost pdbtn" id="paperbtn" title="PAPER ONLY · simulated fills">◎ Paper Desk <small id="pdcount"></small></button>
+      <button class="btn ghost" id="whole">⤢ Whole tower</button>
+    </div>
+    <div class="skyline" aria-hidden="true"><i class="far"></i><i class="mid"></i></div>
+    <div class="wrap" id="wrap"><div class="building" id="building"></div></div>
+    <form class="taskform glass" id="taskform" hidden>
+      <h4>New task → new floor + new Gork</h4>
+      <label>Task<input id="tf-name" maxlength="60" placeholder="e.g. draft SOL recap thread" required></label>
+      <label>Station<select id="tf-bot"></select></label>
+      <label>Start as<select id="tf-state"><option value="waiting">waiting (red)</option><option value="working">working now (green)</option></select></label>
+      <div class="acts"><button class="btn go" type="submit">Add floor</button><button class="btn ghost" type="button" id="tf-cancel">Cancel</button></div>
+      <small>Local only · draft-only · nothing sends. Spawns a new Gork (GORK-T##) on a new floor at the top of the tower. The ten desks keep their stations.</small>
+    </form>
+    <section class="paperdesk" id="paperdesk" hidden>
+      <div class="pd-top"><b>◎ PAPER DESK · GORK-TRADE · TRADING PLATFORM</b><span class="sp"></span><button class="btn ghost" id="pd-close">✕ Close</button></div>
+      <div id="pd-root"></div>
+    </section>
+  </main>
+
+  <aside class="right glass">
+    <div class="rhead"><h3 id="rtitle">⚡ Prompt Forge</h3><small id="rsub">whole office</small></div>
+    <div class="rbody" id="rbody"></div>
+  </aside>
+
+  <footer class="foot glass">
+    <span class="sends">● 0 external sends</span><span>·</span><span>Approve / Hold only change this page (localStorage)</span><span>·</span><span>no posts · no DMs · no spend · no merges · paper fills only</span>
+    <button class="btn ghost" id="undo" style="padding:4px 8px;font-size:10.5px" title="Undo last Approve/Hold and its XP">Undo</button>
+    <button class="btn ghost" id="reset" style="padding:4px 8px;font-size:10.5px">reset local state</button>
+    <div class="kill"><span id="killtxt">kill switch · armed · local</span><button class="switch" id="kill" aria-label="Kill switch (local only)"></button></div>
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="js/scanners.js"></script>
+<script src="js/paper-desk.js?v=10x-live2"></script>
+<script src="js/nft-live.js?v=10x-live2"></script>
+<script src="js/hq.js?v=silver1"></script>
+<script src="/assets/pad.js" defer></script>
 </body>
 </html>
