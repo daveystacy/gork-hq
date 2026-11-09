@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-01T23:05:05-06:00",
+  "updated": "2026-11-09T01:28:00-06:00",
  "agents": [
   {
    "id": "gork",
@@ -41,10 +41,10 @@
    "id": "scanner",
    "name": "Scanner",
    "role": "EBT token scanner",
-   "state": "working",
-   "task": "Paper-scanning Solana pairs",
-   "progress": 30,
-   "since": "2026-11-01T20:00:00-06:00"
+   "state": "idle",
+   "task": "Paused",
+   "progress": 0,
+   "since": "2026-11-09T01:28:00-06:00"
   }
  ],
  "tasks": [
@@ -129,6 +129,10 @@
   {
    "t": "2026-11-01T23:05:05-06:00",
    "msg": "GORK \u2192 working: Wiring gork.expire.org realtime"
+  },
+  {
+   "t": "2026-11-09T01:28:00-06:00",
+   "msg": "Scanners paused: GORK-SCAN and GORK-TRADE"
   }
  ]
 }

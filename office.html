@@ -40,6 +40,8 @@ h1{margin:0 0 8px;font-size:18px;letter-spacing:2px}h1 b{color:#8b5cf6}h1 small{
 .sc .st.ok i{background:#22c55e;color:#04140a}.sc .st.x i{background:#ef4444;color:#fff}.sc .st.dim{color:#555}.sc.n .st.ok i{background:#e9c46a;color:#1a1206}
 .sc .st small{margin-left:auto;font:600 10px ui-monospace,monospace;color:#777}.sc .ft{position:absolute;left:16px;right:16px;bottom:10px;display:flex;justify-content:space-between;font:600 11px ui-monospace,monospace;color:#8f8aa3}.sc.n .ft{color:#c9a95a}
 </style>
+<script src="js/scanners.js"></script>
+<style>.st.paused{background:#3a2a12;color:#ffb35c}</style>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 </head><body>
 <div id="stage"><h1><b>Expire</b> Trading Bot<small id="upd"></small></h1><div id="view"><div id="ov"></div><div id="hud">…</div><button id="cls" onclick="unfocus()" style="display:none;position:absolute;right:8px;top:58px;z-index:7;font:700 14px ui-monospace,monospace;background:#d4af37;color:#000;border:0;border-radius:8px;padding:6px 12px">✕ back to office</button><div style="position:absolute;right:8px;bottom:40px;z-index:6;font:13px ui-monospace,monospace;color:#888;pointer-events:none">tap a bot for close-up</div><div id="tick"><span>loading…</span></div></div><div id="scr"><div class="sc m" id="scM"></div><div class="sc n" id="scN"></div></div></div>
@@ -202,37 +204,38 @@ let S={agents:[],tasks:[],log:[]};
 let E=null,Q=[],lastT=0,cur={},feedI=0;const fmt=(n,d=3)=>(n>=0?'+':'')+n.toFixed(d);
 async function pollEBT(){try{const r=await fetch(SB+'/rest/v1/ebt_bg_state?id=eq.main&select=running,state,ticks,last_tick,updated_at',{headers:{apikey:PK},cache:'no-store'});const j=await r.json();if(!j[0])return;E=j[0];
  const lg=(E.state&&E.state.log)||[];const nw=lg.filter(l=>l.t>lastT);if(lastT===0)Q=nw.slice(-12);else Q.push(...nw);if(Q.length>60)Q=Q.slice(-60);if(lg.length)lastT=Math.max(lastT,...lg.map(l=>l.t));drawEBT()}catch(e){console.warn(e)}}
-const live=()=>E&&E.running&&Date.now()-new Date(E.last_tick).getTime()<90000;
+const PAUSED=window.SCANNERS_PAUSED!==false;
+const live=()=>!PAUSED&&E&&E.running&&Date.now()-new Date(E.last_tick).getTime()<90000;
 function step(){if(!live())return;const ev=Q.shift();const st=E.state||{};const feed=st.feed||[];
  const f=feed.length?feed[feedI++%feed.length]:null;if(f)cur.scout={t:`$${f.ticker} · mcap $${Math.round((f.mcap||0)/1000)}K`,img:f.image};
  if(ev){const k=ev.kind,m=ev.msg;if(k==='SCAN')cur.scout={t:m.replace(/^bg · /,''),img:null};else if(k==='KILL')cur.safety={t:'☠ '+m,c:'#b91c1c'};else if(k==='SCORE'){const n=+(m.match(/ (\d+)/)||[])[1];cur.analyst={t:m,p:isNaN(n)?-1:n,c:/executor/.test(m)?'#15803d':'#111'};const tk=(m.match(/\$(\S+)/)||[])[1];const ff=feed.find(x=>x.ticker===tk);if(ff)cur.analyst.img=ff.image}
   else if(/BUY|SELL|ENTER|EXIT|TP|STOP|WARN/.test(k)){if(k==='SELL'&&!/[−-]\s?\d/.test(m)&&bots.scanner)bots.scanner.happy=clock.elapsedTime+5;cur.trader={t:(k==='BUY'?'🟢 BUY ':k==='SELL'?'🔴 SELL ':'')+m,c:k==='SELL'?'#b91c1c':'#15803d'}}}
  render()}
-setInterval(step,900);
+if(!PAUSED)setInterval(step,900);
 function tradeAgents(){const on=live(),st=(E&&E.state)||{},pos=((st.book||{}).positions||[]).filter(p=>p.open);
- const mk=(id,name,role,c)=>({id,name,role,state:on?'working':'idle',task:on?(c&&c.t)||'…':'scanner stopped',progress:on&&c&&c.p!=null?c.p:-1,img:on&&c?c.img:null,color:c&&c.c});
+ const mk=(id,name,role,c)=>({id,name,role,state:PAUSED?'paused':on?'working':'idle',task:on?(c&&c.t)||'…':(PAUSED?'Paused':'scanner stopped'),progress:on&&c&&c.p!=null?c.p:-1,img:on&&c?c.img:null,color:c&&c.c});
  const tr=cur.trader||(pos[0]?{t:`holding $${pos[0].ticker} ${pos[0].cost.toFixed(2)} SOL ${fmt((pos[0].last/pos[0].entry-1)*100,1)}%`}:{t:'waiting for a score ≥70'});
  return[mk('researcher','Scout','discovers tokens',cur.scout),mk('browser','Safety','kill filters',cur.safety),mk('builder','Analyst','scores 0-100',cur.analyst||(()=>{const f=[...(st.feed||[])].sort((x,y)=>y.score-x.score)[0];return f?{t:`$${f.ticker} score ${f.score} · ${f.verdict}`,p:f.score,img:f.image}:null})()),mk('scanner','Trader','paper buys / sells',tr),
-  {id:'gork',name:'GORK',role:'Lead bot',state:on?'meeting':'idle',task:on?`scan #${st.scans||0}`:'scanner stopped',progress:-1}]}
+  {id:'gork',name:'GORK',role:'Lead bot',state:PAUSED?'paused':on?'meeting':'idle',task:on?`scan #${st.scans||0}`:(PAUSED?'Paused':'scanner stopped'),progress:-1}]}
 function drawEBT(){if(!E)return;const st=E.state||{},b=st.book||{},on=live();const eq=b.equity??b.cash??0,pnl=eq-(b.start||5);
  const pos=(b.positions||[]).filter(p=>p.open),closed=(b.positions||[]).filter(p=>!p.open);
  const ppl=p=>(p.last/p.entry-1)*100;
- document.getElementById('hud').innerHTML=on?`📄 PAPER · <span style="color:#d4af37">${eq.toFixed(3)} SOL</span> <span class="${pnl>=0?'up':'dn'}">${fmt(pnl)}</span> · scans ${st.scans||0}`:'⏸ scanner stopped · '+eq.toFixed(3)+' SOL';
+ document.getElementById('hud').innerHTML=PAUSED?'⏸ Paused':on?`📄 PAPER · <span style="color:#d4af37">${eq.toFixed(3)} SOL</span> <span class="${pnl>=0?'up':'dn'}">${fmt(pnl)}</span> · scans ${st.scans||0}`:'⏸ scanner stopped · '+eq.toFixed(3)+' SOL';
  const tr=[...pos.map(p=>`BUY $${p.ticker} ${p.cost.toFixed(2)} SOL @ ${new Date(p.openedAt).toLocaleTimeString('en-US',tz)}`),...closed.map(p=>`SELL $${p.ticker} ${fmt(p.pnlUsd)} SOL (${fmt(p.pnlPct,1)}%) ${p.reason||''}`),...closed.map(p=>`BUY $${p.ticker} ${p.cost.toFixed(2)} SOL`)];
  document.querySelector('#tick span').textContent=tr.length?tr.join('   ◆   '):'no paper trades yet';
  document.getElementById('wb').innerHTML=`<div class="big">${eq.toFixed(3)} SOL <span class="${pnl>=0?'up':'dn'}" style="font-size:15px">${fmt(pnl)}</span></div>
- <div class="row"><span>status</span><span class="pill ${on?'up':'dn'}">${on?'● scanning · paper':'scanner stopped'}</span></div>
+ <div class="row"><span>status</span><span class="pill ${on?'up':'dn'}">${PAUSED?'Paused':on?'● scanning · paper':'scanner stopped'}</span></div>
  <div class="row"><span>scans</span><b>${st.scans||0}</b></div><div class="row"><span>tokens seen / killed</span><b>${st.seen||0} / ${st.killed||0}</b></div>
  <h2 style="margin-top:8px">Open positions</h2>${pos.map(p=>`<div class="row"><span>$${esc(p.ticker)} ${p.cost.toFixed(2)} SOL</span><b class="${ppl(p)>=0?'up':'dn'}">${fmt(ppl(p),2)}% (${fmt(p.cost*ppl(p)/100,4)})</b></div>`).join('')||'<div class="row">none</div>'}
  <h2 style="margin-top:8px">Recent trades</h2>${closed.slice(-6).reverse().map(p=>`<div class="row"><span>SELL $${esc(p.ticker)} ${esc(p.reason||'')}</span><b class="${p.pnlUsd>=0?'up':'dn'}">${fmt(p.pnlUsd,4)} SOL</b></div>`).join('')||'<div class="row">none yet</div>'}`;
- if(window.drawWall)drawWall([[`${eq.toFixed(3)} SOL`,'#d4af37'],[`P&L ${fmt(pnl)} SOL`,pnl>=0?'#22c55e':'#ef4444'],[on?`SCANS ${st.scans||0} · PAPER`:'SCANNER STOPPED',on?'#fff':'#ef4444'],...pos.slice(0,3).map(p=>[`$${p.ticker} ${fmt(ppl(p),1)}%`,ppl(p)>=0?'#22c55e':'#ef4444']),[closed.length?`last: $${closed.at(-1).ticker} ${fmt(closed.at(-1).pnlUsd)}`:'','#aaa']])}
+ if(window.drawWall)drawWall([[`${eq.toFixed(3)} SOL`,'#d4af37'],[`P&L ${fmt(pnl)} SOL`,pnl>=0?'#22c55e':'#ef4444'],[PAUSED?'PAUSED':on?`SCANS ${st.scans||0} · PAPER`:'SCANNER STOPPED',on?'#fff':'#ef4444'],...pos.slice(0,3).map(p=>[`$${p.ticker} ${fmt(ppl(p),1)}%`,ppl(p)>=0?'#22c55e':'#ef4444']),[closed.length?`last: $${closed.at(-1).ticker} ${fmt(closed.at(-1).pnlUsd)}`:'','#aaa']])}
 const COL={gork:'#dfe6ff',builder:'#ff9a1f',browser:'#3b82ff',researcher:'#2dff7a',scanner:'#a24bff'};
 const tz={timeZone:'America/Chicago',hour:'numeric',minute:'2-digit'};
 const ft=t=>t?new Date(t).toLocaleTimeString('en-US',tz)+' CT':'—';
 const esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 async function poll(){try{const r=await fetch('status.json?'+Date.now(),{cache:'no-store'});S=await r.json();render()}catch(e){}}
 function render(){S.agents=tradeAgents();document.getElementById('upd').textContent='updated '+ft(S.updated);
- document.getElementById('team').innerHTML=S.agents.map(a=>`<div class="ag"><div class="dot" style="background:${COL[a.id]||'#aaa'}"></div><div style="flex:1;min-width:0"><b>${esc(a.name)}</b> <span style="color:#666">${esc(a.role)}</span><div style="font-size:11px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.task)||'—'}</div>${a.state==='working'?`<div class="bar"><i style="width:${a.progress}%"></i></div>`:''}</div><span class="st ${a.state}">${a.state.replace('_',' ')}</span></div>`).join('');
+ document.getElementById('team').innerHTML=S.agents.map(a=>`<div class="ag"><div class="dot" style="background:${COL[a.id]||'#aaa'}"></div><div style="flex:1;min-width:0"><b>${esc(a.name)}</b> <span style="color:#666">${esc(a.role)}</span><div style="font-size:11px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.task)||'—'}</div>${a.state==='working'?`<div class="bar"><i style="width:${a.progress}%"></i></div>`:''}</div><span class="st ${a.state}">${a.state==='paused'?'Paused':a.state.replace('_',' ')}</span></div>`).join('');
  const ord={'in-progress':0,queued:1,done:2};
  document.getElementById('tasks').innerHTML=[...S.tasks].sort((a,b)=>ord[a.status]-ord[b.status]).map(t=>`<div class="tk ${t.status}">${esc(t.title)}<div style="font-size:10px;color:#777">${t.status} · ${esc(t.owner)} · ${t.status==='done'?'done '+ft(t.finished):t.started?'since '+ft(t.started):'queued'}</div></div>`).join('');
  document.getElementById('log').innerHTML=[...S.log].reverse().slice(0,40).map(l=>`<div class="lg"><span>${ft(l.t)}</span>${esc(l.msg)}</div>`).join('');
@@ -240,7 +243,8 @@ function render(){S.agents=tradeAgents();document.getElementById('upd').textCont
 
 const SB='https://szpczmrvthxkdaxqzlqk.supabase.co',PK='sb_publishable_yEG-pRaQg9BZg4DM9ibxCg_JLuX0hLy';
 async function pollSB(){try{const r=await fetch(SB+'/rest/v1/gork_hq_status?id=eq.1&select=data',{headers:{apikey:PK}});const j=await r.json();if(j[0]){S=j[0].data;render();return true}}catch(e){}return false}
-pollEBT();setInterval(pollEBT,2500);
+function paintPaused(){document.getElementById('hud').innerHTML='⏸ Paused';const tick=document.querySelector('#tick span');if(tick)tick.textContent='Paused · GORK-SCAN and GORK-TRADE are not scanning';const h=document.querySelector('#wall h2');if(h)h.textContent='Paper trading · Paused';const wb=document.getElementById('wb');if(wb)wb.innerHTML='<div class="big">Paused</div><div class="row"><span>status</span><span class="pill dn">Paused</span></div><div class="row"><span>GORK-SCAN</span><b>Paused</b></div><div class="row"><span>GORK-TRADE</span><b>Paused</b></div>';['scM','scN'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.classList.add('off');el.innerHTML='<div class="hd"><span>'+(id==='scM'?'EBT · working on':'EBT · night desk')+'</span><span class="lv">Paused</span></div><div class="tm" style="margin-top:20px">Paused</div>'})}
+if(PAUSED)paintPaused();else{pollEBT();setInterval(pollEBT,2500)}
 (async()=>{if(!(await pollSB()))await poll();setInterval(async()=>{if(!(await pollSB()))poll()},15000);
  try{const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');const sb=createClient(SB,PK);
   sb.channel('gork-hq').on('postgres_changes',{event:'*',schema:'public',table:'gork_hq_status'},p=>{if(p.new&&p.new.data){S=p.new.data;render();document.getElementById('upd').textContent+=' · live'}}).subscribe(st=>{window.__rt=st})}catch(e){console.warn('realtime off',e)}})();
@@ -250,16 +254,16 @@ let scI=0;const esh=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt
 const kfmt=n=>n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+Math.round(n/1e3)+'K':'$'+Math.round(n||0);
 const agef=m=>m==null?'':m<60?Math.round(m)+'m old':Math.round(m/60)+'h old';
 const LOGO=JSON.parse(localStorage.getItem('gork:logos')||'{}');let logoBusy=false;
-async function logoFill(mints){mints=[...new Set(mints)].filter(m=>m&&!(m in LOGO));if(!mints.length||logoBusy)return;logoBusy=true;
+async function logoFill(mints){if(PAUSED)return;mints=[...new Set(mints)].filter(m=>m&&!(m in LOGO));if(!mints.length||logoBusy)return;logoBusy=true;
  try{const r=await fetch('https://api.dexscreener.com/tokens/v1/solana/'+mints.slice(0,30).join(','));const a=r.ok?await r.json():[];for(const p of a||[]){const m=p.baseToken&&p.baseToken.address;if(m&&p.info&&p.info.imageUrl&&!LOGO[m])LOGO[m]=p.info.imageUrl}
   for(const m of mints.slice(0,30))if(!LOGO[m]){try{const g=await(await fetch('https://api.geckoterminal.com/api/v2/networks/solana/tokens/'+m)).json();const u=g&&g.data&&g.data.attributes&&g.data.attributes.image_url;LOGO[m]=u&&u!=='missing.png'?u:null}catch{}}
   localStorage.setItem('gork:logos',JSON.stringify(LOGO))}catch{}finally{logoBusy=false}}
 const imgOf=t=>t.image||LOGO[t.mint]||null;
 function scPick(){const f=(E&&E.state&&E.state.feed)||[];if(!f.length)return[null,null];const a=f[scI%f.length];let b=null;
  for(let k=1;k<f.length;k++){const c=f[(scI+k)%f.length];if(c.ticker!==a.ticker){b=c;break}}return[a,b]}
-function scCard(el,t,kind){if(t&&!t.image&&!(t.mint in LOGO))logoFill([t.mint]);const IM=t&&imgOf(t);const on=live(),st=(E&&E.state)||{},bk=st.book||{};el.classList.toggle('off',!on);
- const hd=`<div class="hd"><span>${kind==='m'?'EBT · working on':'EBT · night desk'}</span><span class="lv">${on?'live · paper':'scanner stopped'}</span></div>`;
- if(!t){el.innerHTML=hd+'<div class="tm" style="margin-top:20px">waiting for the scanner…</div>';return}
+function scCard(el,t,kind){if(PAUSED){el.classList.add('off');return}if(t&&!t.image&&!(t.mint in LOGO))logoFill([t.mint]);const IM=t&&imgOf(t);const on=live(),st=(E&&E.state)||{},bk=st.book||{};el.classList.toggle('off',!on);
+ const hd=`<div class="hd"><span>${kind==='m'?'EBT · working on':'EBT · night desk'}</span><span class="lv">${PAUSED?'Paused':on?'live · paper':'scanner stopped'}</span></div>`;
+ if(PAUSED||!t){el.innerHTML=hd+'<div class="tm" style="margin-top:20px">'+(PAUSED?'Paused':'waiting for the scanner…')+'</div>';return}
  const k=t.killed,steps=[[`Found on ${esh(t.source||'DexScreener')}`,'ok','SCOUT'],
   [k?'Killed · '+esh(k.detail||k.rule):'Passed 8 rules',k?'x':'ok','FILTER'],
   [k?'Score':t.score!=null?`Score ${t.score}${t.pass?' → executor':' · dropped'}`:'Score',k?'dim':t.pass?'ok':'x','ANALYST'],
@@ -269,7 +273,7 @@ function scCard(el,t,kind){if(t&&!t.image&&!(t.mint in LOGO))logoFill([t.mint]);
   +steps.map(([a,c,b])=>`<div class="st ${c}"><i>${c==='ok'?'✓':c==='x'?'✕':''}</i>${a}<small>${b}</small></div>`).join('')
   +`<div class="ft"><span>${kind==='m'?'balance '+(+(bk.equity??bk.cash??0)).toFixed(3)+' SOL':'scans '+(st.scans||0)}</span><span>${closed.length} trades · net ${fmt(net)} SOL</span></div>`}
 function scPaint(){if(innerWidth<1000)return;const[a,b]=scPick();scCard(document.getElementById('scM'),a,'m');scCard(document.getElementById('scN'),b,'n')}
-setInterval(()=>{if(live())scI+=2;scPaint()},1800);
+if(!PAUSED)setInterval(()=>{if(live())scI+=2;scPaint()},1800);
 </script><button id="mus" aria-label="music" style="position:fixed;right:12px;top:calc(10px + env(safe-area-inset-top));z-index:50;min-width:48px;height:44px;border-radius:13px;border:1px solid #c5b08d77;background:#081020e9;color:#ecd3a4;font:650 14px system-ui,sans-serif;box-shadow:0 7px 21px #0007;padding:0 12px">♪ <span id="musl">tap for sound</span></button>
 <script>
 (()=>{const T=[['Across the Room','music/across-the-room.m4a'],['Southbound Sky','music/southbound-sky.m4a']];let i=0,on=localStorage.getItem('xpRadioEnabled')!=='0',started=false;
