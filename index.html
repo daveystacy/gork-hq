@@ -3,13 +3,107 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gork House</title>
-<meta http-equiv="refresh" content="0; url=https://expire.org/Gork/">
-<link rel="canonical" href="https://expire.org/Gork/">
-<script>location.replace("https://expire.org/Gork/" + location.search + location.hash);</script>
-<style>html,body{margin:0;height:100%;background:#05070c;color:#e9eef7;font:16px ui-sans-serif,system-ui,sans-serif;display:flex;align-items:center;justify-content:center}a{color:#2bff88}</style>
+<title>Gork House · ECA Characters</title>
+<meta name="theme-color" content="#05070c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@450;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/house.css">
 </head>
 <body>
-<p>Opening the <a href="https://expire.org/Gork/">Gork House</a>…</p>
+<div class="wrap">
+  <header class="top">
+    <div class="logo"><span class="mark" aria-hidden="true"></span><div>Gork House<small>10X · NIGHT SHIFT · HOME OFFICE</small></div></div>
+    <span class="chip pause" id="scan-chip">SCANNERS PAUSED</span>
+    <span class="sp"></span>
+    <a class="chip go" href="https://expire.org/Gork/">3D tower</a>
+    <a class="chip" href="office.html">Paper office</a>
+  </header>
+
+  <h1>ECA Characters</h1>
+  <p class="lede">Expire Crypto Academy, twenty class portraits in their home rooms. Grouped by district. Drop a webp in <span style="font-family:var(--mono);font-size:13px">assets/eca/</span> using the card’s file name (about 1600px) and it replaces the placeholder.</p>
+
+  <section class="pause-bar glass" aria-label="Scanner status">
+    <div>
+      <b>PAUSED</b>
+      <p>Both trading scanners stay off while <span style="font-family:var(--mono)">SCANNERS_PAUSED</span> is true. Books, wallets, and keys are untouched.</p>
+    </div>
+    <div class="pair">
+      <span>GORK-SCAN <em>Paused</em></span>
+      <span>GORK-TRADE <em>Paused</em></span>
+    </div>
+  </section>
+
+  <div class="sec-h"><h2>Projects</h2><span>7 active</span></div>
+  <section class="projects" aria-label="Active projects">
+    <article class="proj"><div class="st">IN PROGRESS</div><strong>ECA</strong><p>Expire Crypto Academy. Photo-real 3D campus. Private prototype.</p></article>
+    <article class="proj"><div class="st">IN PROGRESS</div><strong><a href="https://expire.org/game">ExpireMints</a></strong><p>Battle-royale at expire.org/game.</p></article>
+    <article class="proj"><div class="st">IN PROGRESS</div><strong><a href="https://expire.org/">Lobby</a></strong><p>Website lobby. Shops, portals, Experiments robot collection.</p></article>
+    <article class="proj"><div class="st plan">PLANNING</div><strong>ExpireMints NFT</strong><p>Two collections. 5,000 each. 1 SOL each.</p></article>
+    <article class="proj"><div class="st">LIVE</div><strong><a href="https://terminal.expire.org">Terminal</a></strong><p>Expire Terminal at terminal.expire.org.</p></article>
+    <article class="proj"><div class="st">LIVE</div><strong><a href="https://shop.expire.org">Shop</a></strong><p>Expire shop at shop.expire.org.</p></article>
+    <article class="proj"><div class="st review">IN REVIEW</div><strong><a href="https://github.com/daveystacy/expire/pull/299">120 FPS</a></strong><p>Upgrade. PR #299, unmerged.</p></article>
+  </section>
+
+  <main id="gallery"></main>
+
+  <footer class="foot">
+    <span>ECA · 20 classes · 6 districts</span>
+    <span>Paused until SCANNERS_PAUSED is set false</span>
+  </footer>
+</div>
+<script>
+const DISTRICTS=[
+  {name:"Arrival & Campus Life",color:"#2bff88",rooms:[
+    ["guide","Guide","Security","Expire Arrival · monorail station","Spawn. Meets every arrival at the monorail doors."],
+    ["custodian","Custodian","","Atrium floor","Runs the floor scrubber across the atrium."],
+    ["creator","Creator","","Atrium","Vlogs the atrium, camera up, campus feed rolling."]
+  ]},
+  {name:"Learning",color:"#7fd4ff",rooms:[
+    ["professor","Professor","","Expire Learning classroom","Teaches from the front of the classroom."],
+    ["scholar","Scholar","","Library","Works the stacks in the quiet hall."],
+    ["developer","Developer","","Coding lab","Writes at the lab benches, screens on."],
+    ["engineer","Engineer","","Tech console lab","Runs the console wall, systems and fixes."],
+    ["scientist","Scientist","","Expire Research","Works the benches in the research wing."]
+  ]},
+  {name:"Arts & Media",color:"#ff4fd8",rooms:[
+    ["artist","Artist","","Gallery easel","Paints at the easel in the gallery."],
+    ["collector","Collector","","Art gallery","Stands with the infinity sculpture."],
+    ["producer","Producer","","Music studio","Builds the session in the studio."],
+    ["gamer","Gamer","","Stream Room A","Streams from Room A, match on the wall."]
+  ]},
+  {name:"Sports & Fitness",color:"#ff9a1f",rooms:[
+    ["athlete","Athlete","","Arena basketball court","Plays the arena court."],
+    ["coach","Coach","","Gym with cafe","Holds the gym floor, cafe on the side."],
+    ["bodybuilder","Bodybuilder","","Expire Fitness","Trains the Expire Fitness floor."],
+    ["boxer","Boxer","","Training dummy","Works the dummy, gloves on."]
+  ]},
+  {name:"Living & Social",color:"#ffd23f",rooms:[
+    ["resident","Resident","","Dorm apartment","Lives in the dorm room."],
+    ["socialite","Socialite","","Sunset penthouse","Hosts the penthouse at sunset."]
+  ]},
+  {name:"Trade & Industry",color:"#a24bff",rooms:[
+    ["trader","Trader","","Trading desk","Sits the desk. The scanners on this floor are paused."],
+    ["mechanic","Mechanic","","Garage","Works the garage bay."]
+  ]}
+];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+document.getElementById("gallery").innerHTML=DISTRICTS.map(d=>`
+  <section class="district" style="--c:${d.color}">
+    <h3><i></i>${esc(d.name)}</h3>
+    <div class="grid">${d.rooms.map(([id,name,role,room,line])=>`
+      <figure class="card">
+        <div class="shot">
+          <img alt="${esc(name)} in the ${esc(room)}" src="assets/eca/${id}.webp" onload="this.parentElement.classList.add('has')" onerror="this.remove()">
+          <div class="ph"><small>PHOTO INCOMING</small><b>${esc(name)}</b></div>
+        </div>
+        <figcaption class="cap">
+          <div class="who"><strong>${esc(name)}</strong>${role?`<span class="role">${esc(role)}</span>`:""}</div>
+          <span class="room">${esc(room)}</span>
+          <p>${esc(line)}</p>
+        </figcaption>
+      </figure>`).join("")}
+    </div>
+  </section>`).join("");
+</script>
 </body>
 </html>
